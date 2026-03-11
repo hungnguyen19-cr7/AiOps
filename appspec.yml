@@ -1,0 +1,29 @@
+version: 0.0
+os: linux
+
+files:
+  - source: dist
+    destination: /var/www/aiops
+  - source: nginx/aiops.conf
+    destination: /etc/nginx/conf.d
+
+hooks:
+  BeforeInstall:
+    - location: scripts/install_dependencies.sh
+      timeout: 180
+      runas: root
+
+  ApplicationStop:
+    - location: scripts/stop_application.sh
+      timeout: 60
+      runas: root
+
+  ApplicationStart:
+    - location: scripts/start_application.sh
+      timeout: 60
+      runas: root
+
+  ValidateService:
+    - location: scripts/validate_service.sh
+      timeout: 60
+      runas: root
