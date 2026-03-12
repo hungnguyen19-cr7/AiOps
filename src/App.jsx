@@ -2,6 +2,7 @@ import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import AdminPage from './pages/AdminPage'
+import TrustPage from './pages/TrustPage'
 
 // Protected Route Guard
 function ProtectedRoute({ children }) {
@@ -27,6 +28,8 @@ function App() {
             <AdminPage />
           </ProtectedRoute>
         } />
+        
+        <Route path="/trust" element={<TrustPage />} />
         
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

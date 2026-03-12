@@ -1,5 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 
 const phases = [
   {
@@ -161,11 +162,12 @@ export default function Footer() {
             © 2025 Agentic AIOps. All rights reserved.
           </span>
           <div className="flex items-center gap-6">
-            {['Privacy Policy', 'Terms of Service', 'Security'].map((link) => (
-              <a key={link} href="#" className="font-mono text-xs text-silver/20 hover:text-neon/60 transition-colors">
-                {link}
-              </a>
-            ))}
+            <a href="#" className="font-mono text-xs text-silver/20 hover:text-neon/60 transition-colors">Privacy Policy</a>
+            <a href="#" className="font-mono text-xs text-silver/20 hover:text-neon/60 transition-colors">Terms of Service</a>
+            <Link to="/trust" className="font-mono text-xs text-silver/20 hover:text-neon transition-colors font-bold group flex items-center gap-1.5">
+              <span className="w-1 h-1 rounded-full bg-neon group-hover:animate-pulse" />
+              Trust Center
+            </Link>
           </div>
         </div>
       </div>
