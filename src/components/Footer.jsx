@@ -18,17 +18,16 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 lg:gap-16">
           {/* Brand Column */}
           <div className="md:col-span-4 space-y-6">
-            <div className="flex items-center gap-3">
-              <svg viewBox="0 0 100 30" className="h-8">
-                <text x="0" y="25" className="fill-white font-display font-bold text-3xl">NTQ</text>
-                <text x="70" y="25" className="fill-neon/60 font-mono text-[8px] uppercase tracking-widest leading-tight">
-                  GLOBAL<br/>SERVICE<br/>PROVIDER
-                </text>
-              </svg>
+            <div className="space-y-6">
+              <img 
+                src="/image/trust/ntq_solution_jsc_logo.jpeg" 
+                alt="NTQ Solution" 
+                className="h-12 w-auto object-contain bg-white p-1.5 rounded shadow-lg" 
+              />
+              <p className="text-silver/50 text-sm leading-relaxed max-w-sm">
+                NTQ Technology - Driving innovation and digital transformation through cutting-edge technology solutions.
+              </p>
             </div>
-            <p className="text-silver/50 text-sm leading-relaxed max-w-sm">
-              NTQ Technology - Driving innovation and digital transformation through cutting-edge technology solutions.
-            </p>
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-neon animate-pulse shadow-[0_0_8px_rgba(0,255,170,0.8)]" />
               <span className="font-display font-bold text-xs text-white tracking-[0.2em] uppercase">Building the Future</span>

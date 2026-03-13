@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
+import Footer from '../components/Footer'
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8012').replace(/\/$/, '')
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://api.ai-agentops.info/').replace(/\/$/, '')
 const ALLOWED_EXTENSIONS = ['pdf', 'md', 'txt']
 const SELECTED_TENANT_STORAGE_KEY = 'aiops_selected_tenant_id'
 
@@ -334,10 +335,11 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="relative z-10 min-h-screen bg-navy flex flex-col pt-24 pb-16 px-6">
+    <div className="relative z-10 min-h-screen bg-navy flex flex-col font-body">
       <Header isAdmin={true} onLogout={handleLogout} />
 
-      <div className="max-w-4xl mx-auto w-full space-y-8 mt-4">
+      <main className="flex-1 pt-24 pb-16 px-6">
+        <div className="max-w-4xl mx-auto w-full space-y-8 mt-4">
         <div>
           <span className="font-mono text-neon/60 text-xs tracking-[0.4em] uppercase mb-2 block">
             // system_dashboard
@@ -861,6 +863,8 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
+    <Footer />
+  </div>
   )
 }
