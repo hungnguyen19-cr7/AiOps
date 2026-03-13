@@ -29,7 +29,7 @@ function App() {
           </ProtectedRoute>
         } />
         
-        <Route path="/trust" element={<TrustPage />} />
+        <Route path="/trust/:section?" element={<TrustPage />} />
         
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
