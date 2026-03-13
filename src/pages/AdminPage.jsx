@@ -7,6 +7,7 @@ import Footer from '../components/Footer'
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://api.ai-agentops.info/').replace(/\/$/, '')
 const ALLOWED_EXTENSIONS = ['pdf', 'md', 'txt']
 const SELECTED_TENANT_STORAGE_KEY = 'aiops_selected_tenant_id'
+const DEFAULT_TENANT_ID = import.meta.env.VITE_DEFAULT_TENANT_ID || 'b967bf31-c4b5-5c50-95d5-99c1251df717'
 
 const INITIAL_CONFIG_FORM = {
   name: '',
@@ -35,6 +36,16 @@ function formatDate(dateValue) {
   return date.toLocaleDateString('en-GB')
 }
 
+function formatDateTime(dateValue) {
+  if (!dateValue) return '-'
+  const date = new Date(dateValue)
+  if (Number.isNaN(date.getTime())) return '-'
+  return date.toLocaleString('en-GB', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  })
+}
+
 export default function AdminPage() {
   const navigate = useNavigate()
   const [hasConfig, setHasConfig] = useState(false)
@@ -51,7 +62,9 @@ export default function AdminPage() {
   const [loadingConfigs, setLoadingConfigs] = useState(false)
   const [savingConfig, setSavingConfig] = useState(false)
   const [searchText, setSearchText] = useState('')
-  const [selectedTenantId, setSelectedTenantId] = useState('')
+  const [selectedTenantId, setSelectedTenantId] = useState(
+    localStorage.getItem(SELECTED_TENANT_STORAGE_KEY) || DEFAULT_TENANT_ID
+  )
   const [selectedTenant, setSelectedTenant] = useState(null)
   const [editingTenantId, setEditingTenantId] = useState(null)
   const [configForm, setConfigForm] = useState(INITIAL_CONFIG_FORM)
@@ -63,6 +76,31 @@ export default function AdminPage() {
   const [auditLogs, setAuditLogs] = useState([])
   const [loadingData, setLoadingData] = useState(false)
   const [activeTab, setActiveTab] = useState('alerts') // 'alerts' | 'audit'
+  const [alertsPage, setAlertsPage] = useState(1)
+  const [auditLogsPage, setAuditLogsPage] = useState(1)
+
+  // Section 5: Sidebar Navigation
+  const [activeView, setActiveView] = useState('monitoring') // 'monitoring' | 'knowledge' | 'config'
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false)
+
+  const sidebarItems = [
+    { id: 'monitoring', label: 'Dashboard', icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+      </svg>
+    )},
+    { id: 'knowledge', label: 'Knowledge Base', icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+      </svg>
+    )},
+    { id: 'config', label: 'Tenants Setup', icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    )},
+  ]
 
   const handleLogout = () => {
     localStorage.removeItem('aiops_auth')
@@ -85,11 +123,14 @@ export default function AdminPage() {
       } else {
         const selectedFromState = data.some((item) => String(item.tenant_id) === String(selectedTenantId))
         const selectedFromStorage = data.some((item) => String(item.tenant_id) === String(storedTenantId))
+        const selectedFromDefault = data.some((item) => String(item.tenant_id) === String(DEFAULT_TENANT_ID))
 
         if (selectedFromState) {
           setSelectedTenantId(String(selectedTenantId))
         } else if (selectedFromStorage) {
           setSelectedTenantId(String(storedTenantId))
+        } else if (selectedFromDefault) {
+          setSelectedTenantId(DEFAULT_TENANT_ID)
         } else {
           setSelectedTenantId(String(data[0].tenant_id))
         }
@@ -121,15 +162,15 @@ export default function AdminPage() {
     }
   }
 
-  const loadMonitoringData = async (tenantId) => {
+  const loadMonitoringData = async (tenantId, showLoading = true) => {
     if (!tenantId) return
-    setLoadingData(true)
+    if (showLoading) setLoadingData(true)
     try {
       const [alertsData, logsData] = await Promise.all([
-        request(`/api/v1/alerts?limit=10&offset=0`, {
+        request(`/api/v1/alerts?limit=15&offset=${(alertsPage - 1) * 15}`, {
           headers: { 'X-Tenant-ID': tenantId }
         }),
-        request(`/api/v1/auditlogs?limit=10&offset=0`, {
+        request(`/api/v1/auditlogs?limit=15&offset=${(auditLogsPage - 1) * 15}`, {
           headers: { 'X-Tenant-ID': tenantId }
         })
       ])
@@ -138,7 +179,7 @@ export default function AdminPage() {
     } catch (error) {
       console.error('Failed to load monitoring data:', error)
     } finally {
-      setLoadingData(false)
+      if (showLoading) setLoadingData(false)
     }
   }
 
@@ -155,9 +196,15 @@ export default function AdminPage() {
     }
 
     loadSelectedTenant(selectedTenantId)
-    loadMonitoringData(selectedTenantId)
+    loadMonitoringData(selectedTenantId, true)
+
+    const intervalId = setInterval(() => {
+      loadMonitoringData(selectedTenantId, false)
+    }, 5000)
+
+    return () => clearInterval(intervalId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTenantId])
+  }, [selectedTenantId, alertsPage, auditLogsPage])
 
   const filteredConfigs = useMemo(() => {
     const keyword = searchText.trim().toLowerCase()
@@ -336,18 +383,77 @@ export default function AdminPage() {
 
   return (
     <div className="relative z-10 min-h-screen bg-navy flex flex-col font-body">
-      <Header isAdmin={true} onLogout={handleLogout} />
+      <Header isAdmin={true} onLogout={handleLogout} isSidebarExpanded={isSidebarHovered} />
 
-      <main className="flex-1 pt-24 pb-16 px-6">
-        <div className="max-w-4xl mx-auto w-full space-y-8 mt-4">
-        <div>
-          <span className="font-mono text-neon/60 text-xs tracking-[0.4em] uppercase mb-2 block">
-            // system_dashboard
-          </span>
-          <h1 className="font-display font-bold text-3xl text-white">
-            AIOps <span className="text-neon">Command Center</span>
-          </h1>
-        </div>
+      <div className="flex-1 flex pt-[72px]">
+        {/* Sidebar Navigation */}
+        <aside 
+          onMouseEnter={() => setIsSidebarHovered(true)}
+          onMouseLeave={() => setIsSidebarHovered(false)}
+          className={`border-r border-white/5 bg-[#0a0f18]/30 backdrop-blur-xl fixed top-[72px] bottom-0 left-0 z-20 hidden lg:flex flex-col transition-all duration-300 ease-in-out overflow-y-auto custom-scrollbar ${
+            isSidebarHovered ? 'w-72 p-6' : 'w-[84px] p-4 items-center'
+          }`}
+        >
+          <nav className="space-y-2 w-full">
+            {sidebarItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveView(item.id)}
+                className={`w-full flex items-center gap-4 rounded transition-all duration-300 group relative ${
+                  isSidebarHovered ? 'px-4 py-3.5' : 'aspect-square justify-center'
+                } ${
+                  activeView === item.id 
+                    ? 'bg-neon/10 border border-neon/30 text-neon shadow-[0_0_20px_rgba(0,255,170,0.1)]' 
+                    : 'text-silver/40 hover:bg-white/5 hover:text-white border border-transparent'
+                }`}
+                title={!isSidebarHovered ? item.label : ''}
+              >
+                <div className={`transition-colors duration-300 ${activeView === item.id ? 'text-neon' : 'text-silver/30 group-hover:text-silver'} ${!isSidebarHovered ? 'scale-110' : ''}`}>
+                  {item.icon}
+                </div>
+                
+                {isSidebarHovered && (
+                  <motion.span 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="font-display font-medium text-sm tracking-wide whitespace-nowrap"
+                  >
+                    {item.label}
+                  </motion.span>
+                )}
+
+                {activeView === item.id && isSidebarHovered && (
+                  <motion.div layoutId="activeInd" className="ml-auto w-1 h-4 bg-neon rounded-full" />
+                )}
+                
+                {activeView === item.id && !isSidebarHovered && (
+                  <div className="absolute right-0 w-1 h-6 bg-neon rounded-l-full shadow-[0_0_8px_rgba(0,255,170,0.6)]" />
+                )}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Dynamic Content Area */}
+        <main className={`flex flex-col flex-1 transition-all duration-300 min-h-[calc(100vh-72px)] relative ${
+          isSidebarHovered ? 'lg:ml-72' : 'lg:ml-[84px]'
+        }`}>
+          <div className="flex-1 w-full space-y-12 p-8 lg:p-12">
+            <div>
+              <h1 className="font-display font-bold text-4xl text-white">
+                AIOps <span className="text-neon uppercase tracking-tighter italic">Command Center</span>
+              </h1>
+            </div>
+
+            <AnimatePresence mode="wait">
+              {activeView === 'monitoring' && (
+                <motion.div
+                  key="monitoring"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  className="space-y-8"
+                >
 
         <div className="relative mt-8 mb-12">
           <div className="neon-border rounded-lg bg-navy-light p-8 transition-all duration-700">
@@ -358,16 +464,6 @@ export default function AdminPage() {
               </h2>
 
               <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => loadMonitoringData(selectedTenantId)}
-                  disabled={loadingData}
-                  className="p-1.5 rounded-full hover:bg-white/10 text-silver/40 hover:text-neon transition-all"
-                  title="Manual Refresh"
-                >
-                  <svg className={`w-4 h-4 ${loadingData ? 'animate-spin text-neon' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
                 <div className="flex gap-2">
                   <span className="w-3 h-3 rounded-full bg-neon animate-pulse" />
                   <span className="w-3 h-3 rounded-full bg-neon/30" />
@@ -378,8 +474,8 @@ export default function AdminPage() {
 
 
 
-            <div className="bg-black/40 rounded-xl border border-white/5 overflow-hidden flex flex-col h-[400px]">
-              <div className="flex bg-white/5 border-b border-white/5">
+            <div className="bg-black/40 rounded-xl border border-white/5 overflow-hidden flex flex-col min-h-[500px] h-auto max-h-[800px]">
+              <div className="flex bg-white/5 border-b border-white/5 shrink-0">
                 <button
                   onClick={() => setActiveTab('alerts')}
                   className={`flex-1 px-4 py-3 font-mono text-xs tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${
@@ -445,7 +541,7 @@ export default function AdminPage() {
                                 <span className={alert.status === 'Resolved' ? 'text-green-400/80' : 'text-yellow-400/80'}>{alert.status}</span>
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-silver/40">{new Date(alert.created_at).toLocaleTimeString()}</td>
+                            <td className="px-4 py-3 text-silver/40">{formatDateTime(alert.created_at)}</td>
                           </tr>
                         ))
                       )}
@@ -479,7 +575,7 @@ export default function AdminPage() {
                             <td className="px-4 py-3 text-silver/80 group-hover:text-white transition-colors">{log.rca_summary}</td>
                             <td className="px-4 py-3 text-neon/70 uppercase">[{log.action_type}] {log.action_name}</td>
                             <td className="px-4 py-3 text-silver/40">{log.approver_user_id}</td>
-                            <td className="px-4 py-3 text-silver/40">{new Date(log.created_at).toLocaleTimeString()}</td>
+                            <td className="px-4 py-3 text-silver/40">{formatDateTime(log.created_at)}</td>
                             <td className="px-4 py-3">
                               <span className={log.outcome === 'Resolved' ? 'text-green-400' : 'text-yellow-400'}>{log.outcome}</span>
                             </td>
@@ -490,13 +586,51 @@ export default function AdminPage() {
                   </table>
                 )}
               </div>
+
+              {/* Pagination Controls */}
+              <div className="flex items-center justify-between px-4 py-3 bg-white/5 border-t border-white/5 mt-auto shrink-0">
+                <button
+                  disabled={activeTab === 'alerts' ? alertsPage === 1 : auditLogsPage === 1}
+                  onClick={() => {
+                    const setPage = activeTab === 'alerts' ? setAlertsPage : setAuditLogsPage;
+                    setPage(p => Math.max(1, p - 1));
+                  }}
+                  className="px-3 py-1.5 text-xs font-mono text-silver/60 hover:text-white disabled:opacity-30 disabled:hover:text-silver/60 transition-colors border border-white/10 hover:border-white/30 rounded flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                  PREV
+                </button>
+                <div className="flex items-center gap-4">
+                  <span className="font-mono text-[10px] text-silver/40 uppercase tracking-widest">
+                    Page <span className="text-neon">{activeTab === 'alerts' ? alertsPage : auditLogsPage}</span>
+                  </span>
+                </div>
+                <button
+                  disabled={activeTab === 'alerts' ? alerts.length < 15 : auditLogs.length < 15}
+                  onClick={() => {
+                    const setPage = activeTab === 'alerts' ? setAlertsPage : setAuditLogsPage;
+                    setPage(p => p + 1);
+                  }}
+                  className="px-3 py-1.5 text-xs font-mono text-silver/60 hover:text-white disabled:opacity-30 disabled:hover:text-silver/60 transition-colors border border-white/10 hover:border-white/30 rounded flex items-center gap-2"
+                >
+                  NEXT
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                </button>
+              </div>
             </div>
           </div>
-
-
         </div>
+      </motion.div>
+    )}
 
-        <div className="space-y-8">
+              {activeView === 'knowledge' && (
+                <motion.div
+                  key="knowledge"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                >
+                  <div className="space-y-8">
           <div className="neon-border rounded-lg p-6 bg-navy-light relative overflow-hidden">
             <h2 className="font-display font-bold text-xl text-white mb-6 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-neon animate-pulse" />
@@ -602,8 +736,19 @@ export default function AdminPage() {
                 </svg>
                 {uploading ? 'Uploading...' : 'Upload'}
               </button>
+              </div>
             </div>
           </div>
+        </motion.div>
+      )}
+
+              {activeView === 'config' && (
+                <motion.div
+                  key="config"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                >
 
           <div className="neon-border rounded-lg p-6 bg-navy-light relative">
             <div className="flex justify-between items-center mb-6">
@@ -856,15 +1001,16 @@ export default function AdminPage() {
                     )}
                   </AnimatePresence>
                 </motion.form>
-
-
               )}
             </AnimatePresence>
           </div>
-        </div>
+        </motion.div>
+      )}
+      </AnimatePresence>
+            <Footer isAdmin={true} />
+          </div>
+        </main>
       </div>
-    </main>
-    <Footer />
-  </div>
+    </div>
   )
 }

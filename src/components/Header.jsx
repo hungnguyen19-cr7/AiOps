@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 
-export default function Header({ onLoginClick, isAdmin, onLogout }) {
+export default function Header({ onLoginClick, isAdmin, onLogout, isSidebarExpanded = false }) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const userEmail = "admin@ntq-solution.com.vn" // Simulated logged-in user
@@ -30,7 +30,14 @@ export default function Header({ onLoginClick, isAdmin, onLogout }) {
           : 'bg-transparent'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div 
+        className={`flex items-center justify-between h-[72px] w-full transition-all duration-300 ${
+          isAdmin 
+            ? 'px-4 lg:px-4' 
+            : 'max-w-7xl mx-auto px-6 py-4'
+        }`}
+      >
+        <div className="flex items-center justify-between w-full">
         {/* Logo */}
         <a href="#" className="flex items-center gap-3 group">
           <div className="relative w-9 h-9 flex-shrink-0">
@@ -121,6 +128,7 @@ export default function Header({ onLoginClick, isAdmin, onLogout }) {
           </button>
         </div>
       </div>
+    </div>
 
       {/* Mobile menu */}
       {mobileOpen && (

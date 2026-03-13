@@ -4,17 +4,17 @@ import { Link } from 'react-router-dom'
 import LegalModal from './LegalModal'
 import { legalContent } from '../data/legalData'
 
-export default function Footer() {
+export default function Footer({ isAdmin = false }) {
   const [activeModal, setActiveModal] = useState(null) // null | 'privacy' | 'terms' | 'rights'
 
   const closeModal = () => setActiveModal(null)
 
   return (
-    <footer id="footer" className="relative overflow-hidden border-t border-neon/10 bg-[#060910]">
+    <footer id="footer" className={`relative overflow-hidden border-t border-neon/10 bg-[#060910] ${isAdmin ? 'w-full' : ''}`}>
       {/* Background Decor */}
       <div className="absolute inset-0 grid-bg opacity-10 pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-6 pt-20 pb-12 relative z-10">
+      <div className={`pt-20 pb-12 relative z-10 ${isAdmin ? 'w-full px-8 lg:px-12 text-left' : 'max-w-7xl mx-auto px-6'}`}>
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 lg:gap-16">
           {/* Brand Column */}
           <div className="md:col-span-4 space-y-6">
