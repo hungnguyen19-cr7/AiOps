@@ -57,6 +57,12 @@ export default function AdminPage() {
   const [configMessage, setConfigMessage] = useState({ type: '', text: '' })
   const [isConfigDropdownOpen, setIsConfigDropdownOpen] = useState(false)
 
+  // Section 4: Monitoring Data
+  const [alerts, setAlerts] = useState([])
+  const [auditLogs, setAuditLogs] = useState([])
+  const [loadingData, setLoadingData] = useState(false)
+  const [activeTab, setActiveTab] = useState('alerts') // 'alerts' | 'audit'
+
   const handleLogout = () => {
     localStorage.removeItem('aiops_auth')
     navigate('/')
@@ -114,6 +120,27 @@ export default function AdminPage() {
     }
   }
 
+  const loadMonitoringData = async (tenantId) => {
+    if (!tenantId) return
+    setLoadingData(true)
+    try {
+      const [alertsData, logsData] = await Promise.all([
+        request(`/api/v1/alerts?limit=10&offset=0`, {
+          headers: { 'X-Tenant-ID': tenantId }
+        }),
+        request(`/api/v1/auditlogs?limit=10&offset=0`, {
+          headers: { 'X-Tenant-ID': tenantId }
+        })
+      ])
+      setAlerts(alertsData || [])
+      setAuditLogs(logsData || [])
+    } catch (error) {
+      console.error('Failed to load monitoring data:', error)
+    } finally {
+      setLoadingData(false)
+    }
+  }
+
   useEffect(() => {
     loadConfigs()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,6 +154,7 @@ export default function AdminPage() {
     }
 
     loadSelectedTenant(selectedTenantId)
+    loadMonitoringData(selectedTenantId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTenantId])
 
@@ -228,20 +256,25 @@ export default function AdminPage() {
     const pickedFiles = Array.from(event.target.files || [])
     const validFiles = []
 
-    for (const file of pickedFiles) {
+    pickedFiles.forEach(file => {
       const ext = file.name.split('.').pop()?.toLowerCase()
       if (ext && ALLOWED_EXTENSIONS.includes(ext)) {
         validFiles.push(file)
       }
-    }
-
-    const uniqueFiles = validFiles.filter((file, index, list) => {
-      return list.findIndex((f) => f.name === file.name) === index
     })
 
-    setUploadedFiles(uniqueFiles)
+    setUploadedFiles(prev => {
+      // Append new files to existing ones, filtering out duplicates by name
+      const existingNames = new Set(prev.map(f => f.name))
+      const uniqueNewFiles = validFiles.filter(f => !existingNames.has(f.name))
+      return [...prev, ...uniqueNewFiles]
+    })
+
     setManifestUploadSuccess(false)
     setUploadError(validFiles.length === pickedFiles.length ? '' : 'Only PDF, Markdown, and TXT files are allowed.')
+    
+    // Reset input value to allow selecting the same file again if it was removed from the list
+    if (event.target) event.target.value = ''
   }
 
   const uploadKnowledgeFiles = async () => {
@@ -259,23 +292,40 @@ export default function AdminPage() {
     setManifestUploadSuccess(false)
     setUploadError('')
 
+    const filesToUpload = [...uploadedFiles]
+    let successCount = 0
+    let lastError = ''
+
     try {
-      for (const file of uploadedFiles) {
+      for (const file of filesToUpload) {
         const formData = new FormData()
         formData.append('file', file)
         formData.append('metadata', JSON.stringify({ uploaded_from: 'admin_console', filename: file.name }))
 
-        await request('/api/v1/knowledge/upload', {
-          method: 'POST',
-          headers: {
-            'X-Tenant-ID': selectedTenantId,
-          },
-          body: formData,
-        })
+        try {
+          await request('/api/v1/knowledge/upload', {
+            method: 'POST',
+            headers: {
+              'X-Tenant-ID': selectedTenantId,
+            },
+            body: formData,
+          })
+          successCount++
+          // Remove from list as we succeed
+          setUploadedFiles(prev => prev.filter(f => f.name !== file.name))
+        } catch (err) {
+          lastError = `Failed to upload ${file.name}: ${err.message}`
+          console.error(lastError)
+        }
       }
 
-      setManifestUploadSuccess(true)
-      setUploadedFiles([])
+      if (successCount === filesToUpload.length) {
+        setManifestUploadSuccess(true)
+      } else if (successCount > 0) {
+        setUploadError(`Uploaded ${successCount}/${filesToUpload.length} files. ${lastError}`)
+      } else {
+        setUploadError(lastError || 'Upload failed.')
+      }
     } catch (error) {
       setUploadError(error.message)
     } finally {
@@ -298,52 +348,150 @@ export default function AdminPage() {
         </div>
 
         <div className="relative mt-8 mb-12">
-          <div className={`neon-border rounded-lg bg-navy-light p-8 transition-all duration-700 ${!hasConfig ? 'blur-md opacity-50' : ''}`}>
+          <div className="neon-border rounded-lg bg-navy-light p-8 transition-all duration-700">
             <div className="flex justify-between items-center mb-8">
-              <h2 className="font-display font-bold text-2xl text-white">1. System Monitoring</h2>
-              <div className="flex gap-2">
-                <span className="w-3 h-3 rounded-full bg-neon animate-pulse" />
-                <span className="w-3 h-3 rounded-full bg-neon/30" />
-                <span className="w-3 h-3 rounded-full bg-neon/30" />
-              </div>
-            </div>
+              <h2 className="font-display font-bold text-2xl text-white flex items-center gap-3">
+                <span className="w-2 h-2 rounded-full bg-neon animate-pulse shadow-[0_0_8px_rgba(0,255,170,0.6)]" />
+                System Monitoring
+              </h2>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              {['CPU Usage', 'Memory Load', 'Active Pods', 'Network Traffic'].map((metric) => (
-                <div key={metric} className="p-4 bg-white/5 border border-white/10 rounded flex flex-col justify-between">
-                  <span className="font-mono text-[10px] text-silver/40 uppercase tracking-widest">{metric}</span>
-                  <span className="font-display font-bold text-2xl text-neon mt-2">{Math.floor(Math.random() * 40 + 20)}%</span>
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => loadMonitoringData(selectedTenantId)}
+                  disabled={loadingData}
+                  className="p-1.5 rounded-full hover:bg-white/10 text-silver/40 hover:text-neon transition-all"
+                  title="Manual Refresh"
+                >
+                  <svg className={`w-4 h-4 ${loadingData ? 'animate-spin text-neon' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+                <div className="flex gap-2">
+                  <span className="w-3 h-3 rounded-full bg-neon animate-pulse" />
+                  <span className="w-3 h-3 rounded-full bg-neon/30" />
+                  <span className="w-3 h-3 rounded-full bg-neon/30" />
                 </div>
-              ))}
+              </div>
             </div>
 
-            <div className="bg-black/40 rounded-lg p-6 h-64 font-mono text-sm overflow-hidden relative border border-white/5">
-              <div className="text-silver/60 mb-3">AIOPS ACTIVE STREAM</div>
-              <div className="space-y-2">
-                <div className="text-neon/80">[SYSTEM] Initialization complete.</div>
-                <div className="text-silver/80">[INFO] Config manager connected to /api/v1/tenants.</div>
-                <div className="text-silver/80">[INFO] Knowledge upload connected to /api/v1/knowledge/upload.</div>
-                <div className="text-yellow-400/80">[WARN] Ensure backend URL is set in VITE_API_BASE_URL.</div>
-                <div className="text-neon/80">[SYSTEM] Agentic loop idle. Waiting for alerts.</div>
+
+
+            <div className="bg-black/40 rounded-xl border border-white/5 overflow-hidden flex flex-col h-[400px]">
+              <div className="flex bg-white/5 border-b border-white/5">
+                <button
+                  onClick={() => setActiveTab('alerts')}
+                  className={`flex-1 px-4 py-3 font-mono text-xs tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${
+                    activeTab === 'alerts' ? 'text-neon bg-neon/5 border-b-2 border-neon' : 'text-silver/40 hover:text-silver/70'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${activeTab === 'alerts' ? 'bg-neon shadow-[0_0_8px_rgba(0,255,170,0.6)]' : 'bg-silver/20'}`} />
+                  Alerts {alerts.length > 0 && `(${alerts.length})`}
+                </button>
+                <button
+                  onClick={() => setActiveTab('audit')}
+                  className={`flex-1 px-4 py-3 font-mono text-xs tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${
+                    activeTab === 'audit' ? 'text-neon bg-neon/5 border-b-2 border-neon' : 'text-silver/40 hover:text-silver/70'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${activeTab === 'audit' ? 'bg-neon shadow-[0_0_8px_rgba(0,255,170,0.6)]' : 'bg-silver/20'}`} />
+                  Audit Logs {auditLogs.length > 0 && `(${auditLogs.length})`}
+                </button>
               </div>
-              <div className="absolute bottom-6 left-6 flex gap-2 items-center">
-                <span className="text-neon">_</span>
-                <span className="w-2 h-4 bg-neon animate-pulse" />
+
+              <div className="flex-1 overflow-auto custom-scrollbar">
+                {activeTab === 'alerts' ? (
+                  <table className="w-full text-left font-mono text-[10px] border-separate border-spacing-0">
+                    <thead className="sticky top-0 bg-[#0d1525] text-silver/40 uppercase tracking-widest z-10">
+                      <tr>
+                        <th className="px-4 py-3 border-b border-white/5">ID</th>
+                        <th className="px-4 py-3 border-b border-white/5">Source</th>
+                        <th className="px-4 py-3 border-b border-white/5">Severity</th>
+                        <th className="px-4 py-3 border-b border-white/5">Status</th>
+                        <th className="px-4 py-3 border-b border-white/5">Time</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {loadingData ? (
+                        [...Array(5)].map((_, i) => (
+                          <tr key={i} className="animate-pulse">
+                            <td colSpan={5} className="px-4 py-4"><div className="h-2 bg-white/5 rounded w-full" /></td>
+                          </tr>
+                        ))
+                      ) : alerts.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-20 text-center text-silver/20 italic tracking-widest">NO ACTIVE ALERTS DETECTED</td>
+                        </tr>
+                      ) : (
+                        alerts.map((alert) => (
+                          <tr key={alert.alert_id} className="hover:bg-white/[0.02] transition-colors group">
+                            <td className="px-4 py-3 text-silver/60 group-hover:text-neon transition-colors cursor-help" title={alert.alert_id}>
+                              {alert.alert_id.split('-')[0]}...
+                            </td>
+                            <td className="px-4 py-3 text-white uppercase">{alert.source}</td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-0.5 rounded-sm border ${
+                                alert.severity === 'HIGH' ? 'text-red-400 border-red-400/30 bg-red-400/5' :
+                                alert.severity === 'MEDIUM' ? 'text-orange-400 border-orange-400/30 bg-orange-400/5' :
+                                'text-blue-400 border-blue-400/30 bg-blue-400/5'
+                              }`}>
+                                {alert.severity}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1.5">
+                                <span className={`w-1 h-1 rounded-full ${alert.status === 'Resolved' ? 'bg-green-400' : 'bg-yellow-400'}`} />
+                                <span className={alert.status === 'Resolved' ? 'text-green-400/80' : 'text-yellow-400/80'}>{alert.status}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-silver/40">{new Date(alert.created_at).toLocaleTimeString()}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                ) : (
+                  <table className="w-full text-left font-mono text-[10px] border-separate border-spacing-0">
+                    <thead className="sticky top-0 bg-[#0d1525] text-silver/40 uppercase tracking-widest z-10">
+                      <tr>
+                        <th className="px-4 py-3 border-b border-white/5">Summary</th>
+                        <th className="px-4 py-3 border-b border-white/5">Action</th>
+                        <th className="px-4 py-3 border-b border-white/5">Actor</th>
+                        <th className="px-4 py-3 border-b border-white/5">Time</th>
+                        <th className="px-4 py-3 border-b border-white/5">Outcome</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {loadingData ? (
+                        [...Array(5)].map((_, i) => (
+                          <tr key={i} className="animate-pulse">
+                            <td colSpan={5} className="px-4 py-4"><div className="h-2 bg-white/5 rounded w-full" /></td>
+                          </tr>
+                        ))
+                      ) : auditLogs.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-20 text-center text-silver/20 italic tracking-widest">AUDIT STREAM EMPTY</td>
+                        </tr>
+                      ) : (
+                        auditLogs.map((log) => (
+                          <tr key={log.log_id} className="hover:bg-white/[0.02] transition-colors group">
+                            <td className="px-4 py-3 text-silver/80 group-hover:text-white transition-colors">{log.rca_summary}</td>
+                            <td className="px-4 py-3 text-neon/70 uppercase">[{log.action_type}] {log.action_name}</td>
+                            <td className="px-4 py-3 text-silver/40">{log.approver_user_id}</td>
+                            <td className="px-4 py-3 text-silver/40">{new Date(log.created_at).toLocaleTimeString()}</td>
+                            <td className="px-4 py-3">
+                              <span className={log.outcome === 'Resolved' ? 'text-green-400' : 'text-yellow-400'}>{log.outcome}</span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           </div>
 
-          {!hasConfig && (
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-8 bg-navy/20 backdrop-blur-sm rounded-lg border border-white/5">
-              <svg className="w-16 h-16 text-silver/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <h3 className="font-display font-bold text-xl text-white mb-2 text-center">No Configuration Detected</h3>
-              <p className="font-mono text-xs text-silver/50 text-center max-w-md leading-relaxed">
-                The monitor dashboard is currently inactive. Please create at least one cloud config in section 3.
-              </p>
-            </div>
-          )}
+
         </div>
 
         <div className="space-y-8">
