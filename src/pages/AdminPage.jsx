@@ -7,7 +7,6 @@ import Footer from '../components/Footer'
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://api.ai-agentops.info/').replace(/\/$/, '')
 const ALLOWED_EXTENSIONS = ['pdf', 'md', 'txt']
 const SELECTED_TENANT_STORAGE_KEY = 'aiops_selected_tenant_id'
-const DEFAULT_TENANT_ID = import.meta.env.VITE_DEFAULT_TENANT_ID || 'b967bf31-c4b5-5c50-95d5-99c1251df717'
 
 const INITIAL_CONFIG_FORM = {
   name: '',
@@ -55,6 +54,9 @@ export default function AdminPage() {
   const [manifestUploadSuccess, setManifestUploadSuccess] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [knowledgeDocs, setKnowledgeDocs] = useState([])
+  const [loadingDocs, setLoadingDocs] = useState(false)
+  const [docsPage, setDocsPage] = useState(1)
 
   // Section 3: Cloud config management states
   const [configTab, setConfigTab] = useState('list') // 'list' | 'create'
@@ -63,7 +65,7 @@ export default function AdminPage() {
   const [savingConfig, setSavingConfig] = useState(false)
   const [searchText, setSearchText] = useState('')
   const [selectedTenantId, setSelectedTenantId] = useState(
-    localStorage.getItem(SELECTED_TENANT_STORAGE_KEY) || DEFAULT_TENANT_ID
+    localStorage.getItem(SELECTED_TENANT_STORAGE_KEY) || ''
   )
   const [selectedTenant, setSelectedTenant] = useState(null)
   const [editingTenantId, setEditingTenantId] = useState(null)
@@ -123,14 +125,11 @@ export default function AdminPage() {
       } else {
         const selectedFromState = data.some((item) => String(item.tenant_id) === String(selectedTenantId))
         const selectedFromStorage = data.some((item) => String(item.tenant_id) === String(storedTenantId))
-        const selectedFromDefault = data.some((item) => String(item.tenant_id) === String(DEFAULT_TENANT_ID))
 
         if (selectedFromState) {
           setSelectedTenantId(String(selectedTenantId))
         } else if (selectedFromStorage) {
           setSelectedTenantId(String(storedTenantId))
-        } else if (selectedFromDefault) {
-          setSelectedTenantId(DEFAULT_TENANT_ID)
         } else {
           setSelectedTenantId(String(data[0].tenant_id))
         }
@@ -183,6 +182,21 @@ export default function AdminPage() {
     }
   }
 
+  const loadKnowledgeDocs = async (tenantId, showLoading = true) => {
+    if (!tenantId) return
+    if (showLoading) setLoadingDocs(true)
+    try {
+      const resp = await request(`/api/v1/knowledge/documents?limit=15&offset=${(docsPage - 1) * 15}`, {
+        headers: { 'X-Tenant-ID': tenantId }
+      })
+      setKnowledgeDocs(resp?.items || [])
+    } catch (error) {
+      console.error('Failed to load knowledge documents:', error)
+    } finally {
+      if (showLoading) setLoadingDocs(false)
+    }
+  }
+
   useEffect(() => {
     loadConfigs()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -205,6 +219,18 @@ export default function AdminPage() {
     return () => clearInterval(intervalId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTenantId, alertsPage, auditLogsPage])
+
+  useEffect(() => {
+    if (!selectedTenantId || activeView !== 'knowledge') return
+
+    loadKnowledgeDocs(selectedTenantId, true)
+    const intervalId = setInterval(() => {
+      loadKnowledgeDocs(selectedTenantId, false)
+    }, 5000)
+
+    return () => clearInterval(intervalId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTenantId, activeView, docsPage])
 
   const filteredConfigs = useMemo(() => {
     const keyword = searchText.trim().toLowerCase()
@@ -369,6 +395,7 @@ export default function AdminPage() {
 
       if (successCount === filesToUpload.length) {
         setManifestUploadSuccess(true)
+        loadKnowledgeDocs(selectedTenantId, false)
       } else if (successCount > 0) {
         setUploadError(`Uploaded ${successCount}/${filesToUpload.length} files. ${lastError}`)
       } else {
@@ -739,6 +766,83 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
+
+          {/* Uploaded Documents Table */}
+          <div className="neon-border rounded-lg p-6 bg-navy-light relative overflow-hidden flex flex-col min-h-[500px] h-auto max-h-[800px]">
+            <h2 className="font-display font-bold text-lg text-white mb-6 flex items-center gap-2">
+              <svg className="w-5 h-5 text-neon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              Document Library
+            </h2>
+            
+            <div className="flex-1 overflow-auto custom-scrollbar">
+              <table className="w-full text-left font-mono text-[10px] border-separate border-spacing-0">
+                <thead className="sticky top-0 bg-[#0d1525] text-silver/40 uppercase tracking-widest z-10">
+                  <tr>
+                    <th className="px-4 py-3 border-b border-white/5">Filename</th>
+                    <th className="px-4 py-3 border-b border-white/5">Type</th>
+                    <th className="px-4 py-3 border-b border-white/5">Status</th>
+                    <th className="px-4 py-3 border-b border-white/5">Upload Time</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {loadingDocs ? (
+                    [...Array(5)].map((_, i) => (
+                      <tr key={i} className="animate-pulse">
+                        <td colSpan={4} className="px-4 py-4"><div className="h-2 bg-white/5 rounded w-full" /></td>
+                      </tr>
+                    ))
+                  ) : knowledgeDocs.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-20 text-center text-silver/20 italic tracking-widest">NO DOCUMENTS FOUND</td>
+                    </tr>
+                  ) : (
+                    knowledgeDocs.map((doc) => (
+                      <tr key={doc.doc_id} className="hover:bg-white/[0.02] transition-colors group">
+                        <td className="px-4 py-3 text-silver/80 group-hover:text-white transition-colors flex items-center gap-2">
+                          <svg className="w-4 h-4 text-neon/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                          <span className="truncate max-w-[200px] lg:max-w-[400px]">{doc.filename}</span>
+                        </td>
+                        <td className="px-4 py-3 text-neon/70 uppercase">{doc.file_type || '-'}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-1 h-1 rounded-full ${['processed', 'completed', 'active'].includes(doc.status?.toLowerCase()) ? 'bg-green-400' : 'bg-yellow-400'}`} />
+                            <span className={['processed', 'completed', 'active'].includes(doc.status?.toLowerCase()) ? 'text-green-400/80' : 'text-yellow-400/80'}>{doc.status || 'Pending'}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-silver/40">{formatDateTime(doc.created_at)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between px-4 py-3 bg-white/5 border-t border-white/5 mt-auto shrink-0 mt-4 rounded-b-lg">
+              <button
+                disabled={docsPage === 1}
+                onClick={() => setDocsPage(p => Math.max(1, p - 1))}
+                className="px-3 py-1.5 text-xs font-mono text-silver/60 hover:text-white disabled:opacity-30 disabled:hover:text-silver/60 transition-colors border border-white/10 hover:border-white/30 rounded flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                PREV
+              </button>
+              <div className="flex items-center gap-4">
+                <span className="font-mono text-[10px] text-silver/40 uppercase tracking-widest">
+                  Page <span className="text-neon">{docsPage}</span>
+                </span>
+              </div>
+              <button
+                disabled={knowledgeDocs.length < 15}
+                onClick={() => setDocsPage(p => p + 1)}
+                className="px-3 py-1.5 text-xs font-mono text-silver/60 hover:text-white disabled:opacity-30 disabled:hover:text-silver/60 transition-colors border border-white/10 hover:border-white/30 rounded flex items-center gap-2"
+              >
+                NEXT
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
+          </div>
+
         </motion.div>
       )}
 
