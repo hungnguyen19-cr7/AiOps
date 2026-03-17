@@ -124,9 +124,7 @@ export default function PricingSection({ onGetStarted }) {
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="bg-neon text-navy font-display font-bold text-xs tracking-widest uppercase px-5 py-1.5 rounded-sm shadow-neon">
-                    ✦ MOST POPULAR
-                  </span>
+                  
                 </div>
               )}
 

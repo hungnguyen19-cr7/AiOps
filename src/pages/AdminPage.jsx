@@ -82,27 +82,49 @@ export default function AdminPage() {
   const [auditLogsPage, setAuditLogsPage] = useState(1)
 
   // Section 5: Sidebar Navigation
-  const [activeView, setActiveView] = useState('monitoring') // 'monitoring' | 'knowledge' | 'config'
+  const [activeView, setActiveView] = useState('monitoring') // 'monitoring' | 'knowledge' | 'config' | 'management'
   const [isSidebarHovered, setIsSidebarHovered] = useState(false)
 
-  const sidebarItems = [
-    { id: 'monitoring', label: 'Dashboard', icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-      </svg>
-    )},
-    { id: 'knowledge', label: 'Knowledge Base', icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-      </svg>
-    )},
-    { id: 'config', label: 'Tenants Setup', icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    )},
-  ]
+  // Section 6: Management Client Data
+  const isAdmin = useMemo(() => localStorage.getItem('aiops_auth') === 'admin', [])
+
+  const [clients] = useState([
+    { tenant_id: 'bc36f154-0e15-4ffb-ab5c-155eef029a46', organization: 'NTQ Solution', contact_email: 'admin@ntq-solution.com.vn', environment: 'Hybrid (AWS + On-Prem)', region: 'Vietnam / Singapore', status: 'Active', security_posture: 'Healthy', active_alerts: 3, total_remediations: 142, compliance_level: 'SOC 2 Type II', last_sync: '2026-03-17T13:45:00Z' },
+    { tenant_id: 'fe89a211-5ba3-4d97-87c2-b93ac6886af2', organization: 'Global FinTech Corp', contact_email: 'sec-ops@globalfin.io', environment: 'Multi-Cloud (Azure + GCP)', region: 'USA (East)', status: 'Warning', security_posture: 'At Risk (IAM Drift)', active_alerts: 12, total_remediations: 850, compliance_level: 'GDPR + SOC 2', last_sync: '2026-03-17T14:10:00Z' },
+    { tenant_id: '92da11c6-147c-4773-b33a-8811b2c976f8', organization: 'CyberDyne Systems', contact_email: 'root@cyberdyne.tech', environment: 'On-Premise (Private Data Center)', region: 'Germany', status: 'Maintenance', security_posture: 'Locked', active_alerts: 0, total_remediations: 12, compliance_level: 'ISO 27001', last_sync: '2026-03-16T23:59:59Z' },
+    { tenant_id: 'ca55e6c1-5ba3-4d97-87c2-b93ac6886af2', organization: 'Future AI Labs', contact_email: 'ops@futureai.io', environment: 'Google Cloud Platform', region: 'USA (West)', status: 'Active', security_posture: 'Healthy', active_alerts: 1, total_remediations: 3200, compliance_level: 'SOC 2 Type II', last_sync: '2026-03-17T12:00:00Z' },
+  ])
+
+  const statsSummary = { total_tenants: 4, total_managed_nodes: 1250, avg_security_score: '92/100', critical_action_required: 1 }
+
+  const sidebarItems = useMemo(() => {
+    const base = [
+      { id: 'monitoring', label: 'Dashboard', icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+      )},
+      { id: 'knowledge', label: 'Knowledge Base', icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      )},
+      { id: 'config', label: 'Tenants Setup', icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      )},
+    ]
+    if (isAdmin) {
+      base.push({ id: 'management', label: 'Management Client', icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      )})
+    }
+    return base
+  }, [isAdmin])
 
   const handleLogout = () => {
     localStorage.removeItem('aiops_auth')
@@ -1111,6 +1133,114 @@ export default function AdminPage() {
         </motion.div>
       )}
       </AnimatePresence>
+
+      {activeView === 'management' && isAdmin && (() => {
+        const statusColors = {
+          Active: { text: 'text-green-400', bg: 'bg-green-400/10', border: 'border-green-400/20' },
+          Warning: { text: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20' },
+          Maintenance: { text: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20' },
+        }
+        const postureColors = {
+          Healthy: 'text-green-400',
+          Locked: 'text-blue-400',
+        }
+        const getPostureColor = (p) => postureColors[p] || 'text-yellow-400'
+        const getStatusStyle = (s) => statusColors[s] || { text: 'text-silver/50', bg: 'bg-white/5', border: 'border-white/10' }
+
+        return (
+          <motion.div
+            key="management"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="space-y-8"
+          >
+            {/* Stats Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: 'Total Tenants', value: statsSummary.total_tenants, accent: 'text-neon' },
+                { label: 'Managed Nodes', value: statsSummary.total_managed_nodes.toLocaleString(), accent: 'text-blue-400' },
+                { label: 'Avg Security Score', value: statsSummary.avg_security_score, accent: 'text-green-400' },
+                { label: 'Critical Actions', value: statsSummary.critical_action_required, accent: 'text-red-400' },
+              ].map((stat, i) => (
+                <div key={i} className="neon-border rounded-lg p-5 bg-navy-light/50 relative overflow-hidden group">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xl">{stat.icon}</span>
+                  </div>
+                  <p className="font-mono text-[10px] text-silver/40 uppercase tracking-widest mb-1">{stat.label}</p>
+                  <p className={`text-2xl font-display font-bold ${stat.accent}`}>{stat.value}</p>
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-neon/5 group-hover:bg-neon/20 transition-all" />
+                </div>
+              ))}
+            </div>
+
+            {/* Client Table */}
+            <div className="neon-border rounded-lg bg-navy-light overflow-hidden">
+              <div className="p-6 border-b border-white/5 flex items-center gap-3">
+                <span className="w-2 h-2 rounded-full bg-neon animate-pulse" />
+                <h2 className="font-display font-bold text-xl text-white">Client Management Console</h2>
+                <span className="ml-auto font-mono text-[10px] text-silver/30 uppercase tracking-widest">{clients.length} tenants</span>
+              </div>
+
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left font-mono text-xs border-separate border-spacing-y-1 p-4">
+                  <thead>
+                    <tr className="text-silver/30 uppercase tracking-[0.15em] text-[9px]">
+                      <th className="px-4 py-3">Organization</th>
+                      <th className="px-4 py-3">Contact</th>
+                      <th className="px-4 py-3">Environment</th>
+                      <th className="px-4 py-3">Region</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Security Posture</th>
+                      <th className="px-4 py-3 text-center">Alerts</th>
+                      <th className="px-4 py-3 text-center">Remediations</th>
+                      <th className="px-4 py-3">Compliance</th>
+                      <th className="px-4 py-3">Last Sync</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clients.map((client) => {
+                      const sStyle = getStatusStyle(client.status)
+                      return (
+                        <tr key={client.tenant_id} className="bg-white/[0.03] hover:bg-white/[0.06] transition-all group">
+                          <td className="px-4 py-4 rounded-l border-y border-l border-white/5">
+                            <p className="font-bold text-white group-hover:text-neon transition-colors">{client.organization}</p>
+                            <p className="text-[9px] text-silver/30 mt-0.5 truncate max-w-[140px]">{client.tenant_id.slice(0,8)}…</p>
+                          </td>
+                          <td className="px-4 py-4 border-y border-white/5 text-silver/50 truncate max-w-[160px]">{client.contact_email}</td>
+                          <td className="px-4 py-4 border-y border-white/5 text-silver/60">{client.environment}</td>
+                          <td className="px-4 py-4 border-y border-white/5 text-silver/60">{client.region}</td>
+                          <td className="px-4 py-4 border-y border-white/5">
+                            <span className={`px-2 py-0.5 rounded text-[9px] uppercase tracking-widest border ${sStyle.text} ${sStyle.bg} ${sStyle.border}`}>
+                              {client.status}
+                            </span>
+                          </td>
+                          <td className={`px-4 py-4 border-y border-white/5 ${getPostureColor(client.security_posture)}`}>
+                            {client.security_posture}
+                          </td>
+                          <td className="px-4 py-4 border-y border-white/5 text-center">
+                            <span className={client.active_alerts > 5 ? 'text-red-400 font-bold' : client.active_alerts > 0 ? 'text-yellow-400' : 'text-green-400'}>
+                              {client.active_alerts}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 border-y border-white/5 text-center text-silver/60">
+                            {client.total_remediations.toLocaleString()}
+                          </td>
+                          <td className="px-4 py-4 border-y border-white/5 text-silver/50">{client.compliance_level}</td>
+                          <td className="px-4 py-4 rounded-r border-y border-r border-white/5 text-silver/40">
+                            {formatDateTime(client.last_sync)}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </motion.div>
+        )
+      })()}
+
             <Footer isAdmin={true} />
           </div>
         </main>

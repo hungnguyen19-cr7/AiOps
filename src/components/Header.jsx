@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 export default function Header({ onLoginClick, isAdmin, onLogout, isSidebarExpanded = false }) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const userEmail = "admin@ntq-solution.com.vn" // Simulated logged-in user
+  const userEmail = localStorage.getItem('aiops_user') || 'Admin'
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30)
@@ -87,7 +87,7 @@ export default function Header({ onLoginClick, isAdmin, onLogout, isSidebarExpan
             <div className="hidden md:flex items-center gap-4">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
                 <div className="w-6 h-6 rounded-full bg-neon/20 flex items-center justify-center text-neon font-bold text-xs">
-                  A
+                  {userEmail.charAt(0).toUpperCase()}
                 </div>
                 <span className="text-white text-sm font-mono">{userEmail}</span>
               </div>

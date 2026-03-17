@@ -2,12 +2,13 @@ import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import AdminPage from './pages/AdminPage'
+import AdminLoginPage from './pages/AdminLoginPage'
 import TrustPage from './pages/TrustPage'
 
 // Protected Route Guard
 function ProtectedRoute({ children }) {
-  const isAuthenticated = localStorage.getItem('aiops_auth') === 'true'
-  if (!isAuthenticated) return <Navigate to="/" replace />
+  const authState = localStorage.getItem('aiops_auth')
+  if (!authState) return <Navigate to="/adminlogin" replace />
   return children
 }
 
@@ -22,6 +23,7 @@ function App() {
 
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/adminlogin" element={<AdminLoginPage />} />
         
         <Route path="/admin" element={
           <ProtectedRoute>
