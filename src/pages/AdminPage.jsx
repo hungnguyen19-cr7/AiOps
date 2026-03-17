@@ -83,7 +83,6 @@ export default function AdminPage() {
 
   // Section 5: Sidebar Navigation
   const [activeView, setActiveView] = useState('monitoring') // 'monitoring' | 'knowledge' | 'config' | 'management'
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false)
 
   // Section 6: Management Client Data
   const isAdmin = useMemo(() => localStorage.getItem('aiops_auth') === 'admin', [])
@@ -432,51 +431,33 @@ export default function AdminPage() {
 
   return (
     <div className="relative z-10 min-h-screen bg-navy flex flex-col font-body">
-      <Header isAdmin={true} onLogout={handleLogout} isSidebarExpanded={isSidebarHovered} />
+      <Header isAdmin={true} onLogout={handleLogout} isSidebarExpanded={true} />
 
       <div className="flex-1 flex pt-[72px]">
-        {/* Sidebar Navigation */}
         <aside 
-          onMouseEnter={() => setIsSidebarHovered(true)}
-          onMouseLeave={() => setIsSidebarHovered(false)}
-          className={`border-r border-white/5 bg-[#0a0f18]/30 backdrop-blur-xl fixed top-[72px] bottom-0 left-0 z-20 hidden lg:flex flex-col transition-all duration-300 ease-in-out overflow-y-auto custom-scrollbar ${
-            isSidebarHovered ? 'w-72 p-6' : 'w-[84px] p-4 items-center'
-          }`}
+          className="border-r border-white/5 bg-[#0a0f18]/30 backdrop-blur-xl fixed top-[72px] bottom-0 left-0 z-20 hidden lg:flex flex-col w-72 p-6 overflow-y-auto custom-scrollbar"
         >
           <nav className="space-y-2 w-full">
             {sidebarItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setActiveView(item.id)}
-                className={`w-full flex items-center gap-4 rounded transition-all duration-300 group relative ${
-                  isSidebarHovered ? 'px-4 py-3.5' : 'aspect-square justify-center'
-                } ${
+                className={`w-full flex items-center gap-4 rounded px-4 py-3.5 transition-all duration-300 group relative ${
                   activeView === item.id 
                     ? 'bg-neon/10 border border-neon/30 text-neon shadow-[0_0_20px_rgba(0,255,170,0.1)]' 
                     : 'text-silver/40 hover:bg-white/5 hover:text-white border border-transparent'
                 }`}
-                title={!isSidebarHovered ? item.label : ''}
               >
-                <div className={`transition-colors duration-300 ${activeView === item.id ? 'text-neon' : 'text-silver/30 group-hover:text-silver'} ${!isSidebarHovered ? 'scale-110' : ''}`}>
+                <div className={`transition-colors duration-300 ${activeView === item.id ? 'text-neon' : 'text-silver/30 group-hover:text-silver'}`}>
                   {item.icon}
                 </div>
                 
-                {isSidebarHovered && (
-                  <motion.span 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="font-display font-medium text-sm tracking-wide whitespace-nowrap"
-                  >
-                    {item.label}
-                  </motion.span>
-                )}
+                <span className="font-display font-medium text-sm tracking-wide whitespace-nowrap">
+                  {item.label}
+                </span>
 
-                {activeView === item.id && isSidebarHovered && (
-                  <motion.div layoutId="activeInd" className="ml-auto w-1 h-4 bg-neon rounded-full" />
-                )}
-                
-                {activeView === item.id && !isSidebarHovered && (
-                  <div className="absolute right-0 w-1 h-6 bg-neon rounded-l-full shadow-[0_0_8px_rgba(0,255,170,0.6)]" />
+                {activeView === item.id && (
+                  <div className="ml-auto w-1.5 h-4 bg-neon rounded-full shadow-[0_0_8px_rgba(0,255,170,0.6)]" />
                 )}
               </button>
             ))}
@@ -484,9 +465,7 @@ export default function AdminPage() {
         </aside>
 
         {/* Dynamic Content Area */}
-        <main className={`flex flex-col flex-1 transition-all duration-300 min-h-[calc(100vh-72px)] relative ${
-          isSidebarHovered ? 'lg:ml-72' : 'lg:ml-[84px]'
-        }`}>
+        <main className="flex flex-col flex-1 lg:ml-72 transition-all duration-300 min-h-[calc(100vh-72px)] relative">
           <div className="flex-1 w-full space-y-12 p-8 lg:p-12">
             <div>
               <h1 className="font-display font-bold text-4xl text-white">
@@ -680,7 +659,7 @@ export default function AdminPage() {
                   exit={{ opacity: 0, y: -15 }}
                 >
                   <div className="space-y-8">
-          <div className="neon-border rounded-lg p-6 bg-navy-light relative overflow-hidden">
+          <div className="neon-border rounded-lg p-6 bg-navy-light relative overflow-hidden mb-8">
             <h2 className="font-display font-bold text-xl text-white mb-6 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-neon animate-pulse" />
               Upload Knowledge Documents
