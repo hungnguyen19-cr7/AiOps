@@ -225,7 +225,6 @@ export default function LoginModal({ onClose }) {
         exit={{ scale: 0.85, opacity: 0, y: 40 }}
         className="relative w-full max-w-sm neon-border rounded-lg bg-navy-light overflow-hidden"
       >
-        <div className="scan-line" />
         <div className="p-8">
           {/* Close button */}
           <button onClick={onClose} className="absolute top-4 right-4 text-silver/40 hover:text-neon p-1">
@@ -241,7 +240,6 @@ export default function LoginModal({ onClose }) {
               <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 {/* Header */}
                 <div className="mb-6">
-                  <span className="font-mono text-neon/50 text-xs tracking-widest uppercase block mb-1">// system_auth</span>
                   <h2 className="font-display font-bold text-2xl text-white">
                     {tab === 'login' ? 'Login' : 'Register'}
                   </h2>
@@ -304,7 +302,7 @@ export default function LoginModal({ onClose }) {
                       />
                     </div>
                     <div>
-                      <label className="block text-silver/60 text-xs uppercase mb-1.5 ml-1 font-mono">Username <span className="text-neon/60">(shown in header)</span></label>
+                      <label className="block text-silver/60 text-xs uppercase mb-1.5 ml-1 font-mono">Username </label>
                       <input
                         type="text" required value={regUsername}
                         onChange={(e) => { setRegUsername(e.target.value); setError('') }}
