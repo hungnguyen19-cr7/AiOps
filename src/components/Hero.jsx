@@ -168,8 +168,6 @@ export default function Hero({ onDemoClick }) {
             className="relative w-full max-w-md neon-border rounded-lg p-6 bg-navy-light"
             style={{ boxShadow: '0 0 60px rgba(0,255,170,0.1), 0 20px 60px rgba(0,0,0,0.5)' }}
           >
-            {/* Scan line */}
-            <div className="scan-line" />
 
             {/* Dashboard header */}
             <div className="flex items-center justify-between mb-5">

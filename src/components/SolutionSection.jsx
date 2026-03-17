@@ -4,7 +4,6 @@ import { motion, useInView } from 'framer-motion'
 const oaaSteps = [
   {
     id: 'observe',
-    short: 'O',
     label: 'Observe',
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -18,7 +17,6 @@ const oaaSteps = [
   },
   {
     id: 'analyze',
-    short: 'A',
     label: 'Analyze',
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -31,7 +29,6 @@ const oaaSteps = [
   },
   {
     id: 'act',
-    short: 'A',
     label: 'Act',
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -82,10 +79,7 @@ export default function SolutionSection() {
         {/* O-A-A Flow */}
         <div className="relative mb-20">
           <div className="grid md:grid-cols-3 gap-6 relative">
-            {/* Connector lines */}
-            <div className="absolute top-1/2 left-1/3 right-1/3 h-px hidden md:block" style={{
-              background: 'linear-gradient(90deg, transparent, rgba(0,255,170,0.5), rgba(0,255,170,0.5), transparent)',
-            }} />
+            {/* Connector lines removed to avoid collision with arrows */}
 
             {oaaSteps.map((step, i) => (
               <motion.div
@@ -121,18 +115,7 @@ export default function SolutionSection() {
                   <div className="font-mono text-xs text-neon/50 tracking-wider">{step.detail}</div>
                 </div>
 
-                {/* Arrow between cards (mobile) */}
-                {i < oaaSteps.length - 1 && (
-                  <motion.div
-                    animate={{ x: [0, 6, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                    className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 hidden md:flex items-center justify-center"
-                  >
-                    <svg className="w-8 h-8 text-neon/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                    </svg>
-                  </motion.div>
-                )}
+
               </motion.div>
             ))}
           </div>
@@ -198,11 +181,10 @@ export default function SolutionSection() {
           transition={{ duration: 0.7, delay: 0.6 }}
           className="pulse-border neon-border rounded-lg p-8 bg-neon/5 relative overflow-hidden"
         >
-          <div className="scan-line" />
           <div className="flex flex-col md:flex-row items-center gap-8">
             {/* Icon */}
             <div className="shrink-0 w-16 h-16 rounded border border-neon/30 bg-neon/10 flex items-center justify-center text-neon glow-text text-2xl font-display font-bold">
-              HIL
+              HITL
             </div>
             <div className="flex-1">
               <h3 className="font-display font-bold text-white text-xl mb-2">
@@ -214,7 +196,7 @@ export default function SolutionSection() {
               </p>
             </div>
             <div className="flex flex-col gap-3 shrink-0">
-              {['✅ Approve', '❌ Deny'].map((action) => (
+              {['Approve', 'Deny'].map((action) => (
                 <div key={action} className="neon-border rounded px-6 py-2.5 text-sm font-mono text-silver/70 text-center">
                   {action}
                 </div>
