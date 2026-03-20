@@ -82,13 +82,12 @@ export default function Hero({ onDemoClick }) {
         </svg>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center w-full">
-        {/* Left: Text */}
+      <div className="max-w-3xl mx-auto px-6 flex flex-col items-center text-center w-full z-10">
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="flex flex-col gap-6"
+          className="flex flex-col items-center gap-6"
         >
           {/* Badge */}
           <motion.div variants={fadeUp}>
@@ -120,7 +119,7 @@ export default function Hero({ onDemoClick }) {
           </motion.p>
 
           {/* CTAs */}
-          <motion.div variants={fadeUp} className="flex flex-wrap gap-4 pt-2">
+          <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-4 pt-4">
             <motion.button
               id="hero-free-trial"
               onClick={onDemoClick}
@@ -143,7 +142,7 @@ export default function Hero({ onDemoClick }) {
           </motion.div>
 
           {/* Stats */}
-          <motion.div variants={fadeUp} className="flex gap-8 pt-4 border-t border-neon/10">
+          <motion.div variants={fadeUp} className="flex justify-center gap-8 pt-8 border-t border-neon/10 w-full max-w-xl mt-4">
             {[
               { value: '99.99%', label: 'Uptime SLA' },
               { value: '<2 min', label: 'Mean Response' },
@@ -155,96 +154,6 @@ export default function Hero({ onDemoClick }) {
               </div>
             ))}
           </motion.div>
-        </motion.div>
-
-        {/* Right: Animated AI Dashboard visualization */}
-        <motion.div
-          initial={{ opacity: 0, x: 60 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 1, delay: 0.3, ease: 'easeOut' }}
-          className="relative flex items-center justify-center float-anim"
-        >
-          <div
-            className="relative w-full max-w-md neon-border rounded-lg p-6 bg-navy-light"
-            style={{ boxShadow: '0 0 60px rgba(0,255,170,0.1), 0 20px 60px rgba(0,0,0,0.5)' }}
-          >
-
-            {/* Dashboard header */}
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-500/70" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
-                <div className="w-3 h-3 rounded-full bg-neon/70" />
-              </div>
-              <span className="font-mono text-xs text-silver/40 tracking-widest">AIOPS.TERMINAL</span>
-            </div>
-
-            {/* Alert feed */}
-            <div className="space-y-3 mb-5">
-              {[
-                { type: 'CRITICAL', msg: 'CPU spike 98% — pod:backend-7f4d', status: 'RESOLVING', color: 'red' },
-                { type: 'WARNING', msg: 'Memory pressure detected — node:k8s-01', status: 'ANALYZED', color: 'yellow' },
-                { type: 'INFO', msg: 'Auto-scaling triggered — 3 pods added', status: '✓ RESOLVED', color: '#00FFAA' },
-              ].map((alert, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.6 + i * 0.2 }}
-                  className="flex items-start gap-3 p-3 rounded border border-white/5 bg-white/3"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
-                >
-                  <span
-                    className="text-xs font-mono font-bold tracking-widest shrink-0 mt-0.5"
-                    style={{ color: alert.color === 'red' ? '#FF4A4A' : alert.color === 'yellow' ? '#FFD700' : '#00FFAA' }}
-                  >
-                    {alert.type}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-silver/80 text-xs font-mono truncate">{alert.msg}</div>
-                    <div
-                      className="text-xs font-mono mt-1"
-                      style={{ color: alert.color === '#00FFAA' ? '#00FFAA' : 'rgba(200,214,229,0.5)' }}
-                    >
-                      {alert.status}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* AI Agent thinking */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.2 }}
-              className="border border-neon/20 rounded p-3 bg-neon/5"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-neon rounded-full animate-pulse" />
-                <span className="font-display text-neon text-xs tracking-widest font-semibold">AI AGENT — ACTIVE</span>
-              </div>
-              <div className="font-mono text-xs text-silver/60 space-y-1">
-                <div><span className="text-neon/60">→</span> Analyzing root cause...</div>
-                <div><span className="text-neon/60">→</span> Executing kubectl scale deployment...</div>
-                <div><span className="text-neon">→</span> <span className="text-neon">Awaiting human approval via Slack</span></div>
-              </div>
-            </motion.div>
-
-            {/* Bottom stats */}
-            <div className="grid grid-cols-3 gap-3 mt-4">
-              {[
-                { label: 'Alerts/hr', value: '2,400' },
-                { label: 'Auto-resolved', value: '94%' },
-                { label: 'MTTR', value: '1.8m' },
-              ].map((s) => (
-                <div key={s.label} className="text-center p-2 border border-white/5 rounded">
-                  <div className="font-display font-bold text-neon text-sm">{s.value}</div>
-                  <div className="font-mono text-silver/40 text-xs mt-0.5">{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
         </motion.div>
       </div>
     </section>
