@@ -72,6 +72,7 @@ export default function AdminPage() {
   const [configForm, setConfigForm] = useState(INITIAL_CONFIG_FORM)
   const [configMessage, setConfigMessage] = useState({ type: '', text: '' })
   const [isConfigDropdownOpen, setIsConfigDropdownOpen] = useState(false)
+  const [tenantToDelete, setTenantToDelete] = useState(null)
 
   // Section 4: Monitoring Data
   const [alerts, setAlerts] = useState([])
@@ -345,6 +346,28 @@ export default function AdminPage() {
       setConfigMessage({ type: 'error', text: error.message })
     } finally {
       setSavingConfig(false)
+    }
+  }
+
+  const handleDeleteConfig = async (tenant) => {
+    try {
+      await request(`/api/v1/tenants/${tenant.tenant_id}`, {
+        method: 'DELETE',
+      })
+      
+      setConfigMessage({ type: 'success', text: 'Configuration deleted successfully.' })
+      
+      if (String(tenant.tenant_id) === String(selectedTenantId)) {
+        setSelectedTenantId('')
+        setSelectedTenant(null)
+        localStorage.removeItem(SELECTED_TENANT_STORAGE_KEY)
+      }
+
+      await loadConfigs()
+    } catch (error) {
+      setConfigMessage({ type: 'error', text: `Failed to delete configuration: ${error.message}` })
+    } finally {
+      setTenantToDelete(null)
     }
   }
 
@@ -938,13 +961,20 @@ export default function AdminPage() {
                             <td className="px-4 py-3 text-silver/80">{config.slack_channel || '-'}</td>
                             <td className="px-4 py-3 text-silver/80">{config.slack_bot_token ? '***' : '-'}</td>
                             <td className="px-4 py-3 text-silver/80">{formatDate(config.created_at)}</td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 flex items-center gap-4">
                               <button
                                 type="button"
                                 onClick={() => beginEditConfig(config)}
                                 className="text-neon hover:text-white transition-colors"
                               >
                                 Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setTenantToDelete(config)}
+                                className="text-red-400 hover:text-red-300 transition-colors"
+                              >
+                                Delete
                               </button>
                             </td>
                           </tr>
@@ -1227,6 +1257,51 @@ export default function AdminPage() {
           </div>
         </main>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {tenantToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              className="w-full max-w-md bg-navy-light border border-red-500/30 rounded-lg shadow-[0_0_30px_rgba(239,68,68,0.15)] overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="flex items-center gap-3 text-red-500 mb-4">
+                  <svg className="w-8 h-8 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <h3 className="font-display font-bold text-xl uppercase tracking-widest text-white">Delete Tenant</h3>
+                </div>
+                
+                <p className="text-silver/70 tracking-wide text-sm leading-relaxed mb-6 font-mono">
+                  Are you absolutely sure you want to delete <br />
+                  <span className="text-white font-bold bg-white/5 px-2 py-0.5 rounded inline-block mt-2 font-display">{tenantToDelete.name}</span>?
+                  <br /><br />
+                  This action cannot be undone and will immediately cease monitoring for this tenant.
+                </p>
+
+                <div className="flex items-center justify-end gap-3 mt-8">
+                  <button
+                    onClick={() => setTenantToDelete(null)}
+                    className="px-5 py-2.5 rounded font-display font-medium text-xs tracking-widest uppercase text-silver/70 border border-white/10 hover:bg-white/5 hover:text-white transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleDeleteConfig(tenantToDelete)}
+                    className="px-5 py-2.5 rounded font-display font-bold text-xs tracking-widest uppercase bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500 hover:text-white transition-all shadow-[0_0_15px_rgba(239,68,68,0.2)] hover:shadow-[0_0_20px_rgba(239,68,68,0.5)]"
+                  >
+                    Confirm Delete
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
