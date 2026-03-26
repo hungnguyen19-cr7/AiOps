@@ -240,7 +240,7 @@ export default function LoginModal({ onClose }) {
               <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 {/* Header */}
                 <div className="mb-6">
-                  <h2 className="font-display font-bold text-2xl text-white">
+                  <h2 className="font-display font-bold text-2xl text-w hite">
                     {tab === 'login' ? 'Login' : 'Register'}
                   </h2>
                 </div>

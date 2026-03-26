@@ -302,6 +302,7 @@ export default function AdminPage() {
         ? (configForm.aws_access_key.trim() || null)
         : (configForm.aws_access_key.trim() || 'placeholder'),
       aws_access_key: configForm.aws_access_key.trim() || null,
+      aws_assume_role: configForm.aws_access_key.trim() || null,
       aws_secret_access_key: configForm.aws_secret_access_key.trim() || null,
       slack_channel: configForm.slack_channel.trim() || null,
       slack_bot_token: configForm.slack_bot_token.trim() || null,
@@ -1032,31 +1033,33 @@ export default function AdminPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
+                          <div className={`space-y-2 ${configForm.cloud_provider === 'aws' ? 'md:col-span-2' : ''}`}>
                             <label className="font-mono text-[10px] text-silver/40 uppercase tracking-[0.2em] block">
-                              {configForm.cloud_provider === 'aws' ? 'AWS Access Key' : configForm.cloud_provider === 'azure' ? 'Client ID' : 'Client Email'}
+                              {configForm.cloud_provider === 'aws' ? 'AWS Assume Role' : configForm.cloud_provider === 'azure' ? 'Client ID' : 'Client Email'}
                             </label>
                             <input
-                              type="password"
+                              type={configForm.cloud_provider === 'aws' ? "text" : "password"}
                               value={configForm.aws_access_key}
                               onChange={(e) => setConfigForm((prev) => ({ ...prev, aws_access_key: e.target.value }))}
-                              placeholder={configForm.cloud_provider === 'aws' ? 'AKIA...' : configForm.cloud_provider === 'azure' ? 'UUID...' : 'service-account@...'}
+                              placeholder={configForm.cloud_provider === 'aws' ? 'arn:aws:iam::account:role/role-name' : configForm.cloud_provider === 'azure' ? 'UUID...' : 'service-account@...'}
                               className="w-full bg-navy border border-white/10 rounded px-4 py-3 text-sm text-white focus:outline-none focus:border-neon/40 font-mono"
                             />
                           </div>
 
-                          <div className="space-y-2">
-                            <label className="font-mono text-[10px] text-silver/40 uppercase tracking-[0.2em] block">
-                              {configForm.cloud_provider === 'aws' ? 'AWS Secret Access Key' : configForm.cloud_provider === 'azure' ? 'Client Secret' : 'Private Key'}
-                            </label>
-                            <input
-                              type="password"
-                              value={configForm.aws_secret_access_key}
-                              onChange={(e) => setConfigForm((prev) => ({ ...prev, aws_secret_access_key: e.target.value }))}
-                              placeholder="••••••••••••"
-                              className="w-full bg-navy border border-white/10 rounded px-4 py-3 text-sm text-white focus:outline-none focus:border-neon/40 font-mono"
-                            />
-                          </div>
+                          {configForm.cloud_provider !== 'aws' && (
+                            <div className="space-y-2">
+                              <label className="font-mono text-[10px] text-silver/40 uppercase tracking-[0.2em] block">
+                                {configForm.cloud_provider === 'azure' ? 'Client Secret' : 'Private Key'}
+                              </label>
+                              <input
+                                type="password"
+                                value={configForm.aws_secret_access_key}
+                                onChange={(e) => setConfigForm((prev) => ({ ...prev, aws_secret_access_key: e.target.value }))}
+                                placeholder="••••••••••••"
+                                className="w-full bg-navy border border-white/10 rounded px-4 py-3 text-sm text-white focus:outline-none focus:border-neon/40 font-mono"
+                              />
+                            </div>
+                          )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
