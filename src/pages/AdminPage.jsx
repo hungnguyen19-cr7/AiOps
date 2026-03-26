@@ -280,7 +280,7 @@ export default function AdminPage() {
     setConfigForm({
       name: config.name || '',
       cloud_provider: config.cloud_provider || 'aws',
-      aws_access_key: '',
+      aws_access_key: config.cloud_provider === 'aws' ? (config.credential_ref || '') : '',
       aws_secret_access_key: '',
       slack_channel: config.slack_channel || '',
       slack_bot_token: '',
