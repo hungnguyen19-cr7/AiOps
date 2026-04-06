@@ -4,80 +4,65 @@ import { motion, useInView } from 'framer-motion'
 const plans = [
   {
     id: 'starter',
-    name: 'Starter',
-    price: '$500',
-    period: '/month',
-    tagline: 'Perfect for small teams',
+    name: 'STARTER',
+    price: '$30K',
+    period: 'Year 1',
     popular: false,
+    nameColor: 'text-[#00D4FF]',
+    priceColor: 'text-[#00FFAA]',
+    borderColor: 'border-[#00FFAA]',
     features: [
-      'Up to 5 Kubernetes clusters',
-      'Alert correlation & dedup',
-      'AI root cause analysis',
-      'Slack integration',
-      '10,000 alerts/month',
-      'Email support (48h)',
-      'Basic dashboard',
+      'Onboarding: $6K (one-time)',
+      'Subscription: $2K/month',
+      '50 servers / nodes',
+      '3 monitoring integrations',
+      '20+ pre-built runbooks',
+      'Support 9x5',
     ],
-    missing: ['Auto-remediation', 'SSO', 'SLA 99.99%'],
     cta: 'Start Free Trial',
   },
   {
-    id: 'advanced',
-    name: 'Advanced',
-    price: '$1,500',
-    period: '/month',
-    tagline: 'For growing enterprises',
+    id: 'professional',
+    name: 'PROFESSIONAL',
+    price: '$72K',
+    period: 'Year 1',
     popular: true,
+    nameColor: 'text-[#00D4FF]',
+    priceColor: 'text-[#00D4FF]',
+    borderColor: 'border-[#00D4FF]',
     features: [
-      'Unlimited clusters',
-      'Auto-remediation with HITL',
-      'AI root cause + predictive',
-      'Slack, Teams, PagerDuty',
-      '100,000 alerts/month',
-      'Priority support (4h)',
-      'Advanced analytics',
-      'SSO (AWS/GCP/Azure)',
-      'Custom AI runbooks',
+      'Onboarding: $12K (one-time)',
+      'Subscription: $5K/month',
+      '200 servers / nodes',
+      '10 monitoring integrations',
+      '50+ runbooks · 3 AI skills',
+      'Support 12x5',
     ],
-    missing: ['White-label'],
-    cta: 'Try Advanced',
+    cta: 'Try Professional',
   },
   {
     id: 'enterprise',
-    name: 'Enterprise',
-    price: 'Custom',
-    period: '',
-    tagline: 'For large enterprises',
+    name: 'ENTERPRISE',
+    price: '$150K+',
+    period: 'Year 1',
     popular: false,
+    nameColor: 'text-[#00D4FF]',
+    priceColor: 'text-[#FFD700]',
+    borderColor: 'border-[#FFD700]',
     features: [
-      'All Advanced features',
-      'White-label & on-premise',
-      'Custom AI model training',
-      'Dedicated support (1h)',
-      'Unlimited alerts',
-      'SLA 99.99% guarantee',
-      'Security audit & DPA',
-      'Multi-region deployment',
-      'Custom integrations',
+      'Onboarding: $30K+ (custom)',
+      'Subscription: $10K+/month',
+      'Unlimited servers',
+      'Dedicated instance',
+      'Support 24x7 · Named CSM',
     ],
-    missing: [],
     cta: 'Contact Sales',
   },
 ]
 
-function CheckIcon() {
+function ArrowIcon() {
   return (
-    <svg className="w-4 h-4 text-neon flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-    </svg>
-  )
-}
-
-function XIcon() {
-  return (
-    <svg className="w-4 h-4 text-silver/20 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-    </svg>
+    <span className="text-neon text-base leading-none mt-[2px] font-mono mr-1">&rarr;</span>
   )
 }
 
@@ -109,56 +94,57 @@ export default function PricingSection({ onGetStarted }) {
         </motion.div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch pt-6">
           {plans.map((plan, i) => (
             <motion.div
               key={plan.id}
               initial={{ opacity: 0, y: 50 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.7, delay: i * 0.15 }}
-              className={`relative card-shimmer rounded-lg flex flex-col ${
-                plan.popular
-                  ? 'pricing-popular border border-neon/40 scale-105 z-10'
-                  : 'neon-border'
-              }`}
+              className={`relative flex flex-col ${plan.popular ? 'scale-105 z-10' : ''}`}
             >
               {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
+                  <span className="bg-neon text-navy font-bold text-[10px] tracking-[0.2em] uppercase px-4 py-1.5 rounded-full shadow-[0_0_15px_rgba(0,255,170,0.5)] whitespace-nowrap">
+                    MOST POPULAR
+                  </span>
                 </div>
               )}
-
-              <div className="p-7 flex flex-col gap-5 flex-1">
+              
+              <div 
+                className={`card-shimmer rounded-xl flex flex-col flex-1 h-full ${
+                  plan.popular
+                    ? 'pricing-popular border border-neon/40 shadow-[0_0_30px_rgba(0,255,170,0.15)] bg-navy-light/90'
+                    : 'neon-border bg-navy-light/40 border-white/5'
+                }`}
+              >
+                <div className="p-8 flex flex-col gap-6 flex-1">
                 {/* Plan name & tagline */}
                 <div>
-                  <div className="font-mono text-xs text-silver/40 tracking-widest uppercase mb-1">{plan.tagline}</div>
-                  <h3 className={`font-display font-bold text-2xl ${plan.popular ? 'text-neon' : 'text-white'}`}>
+                  {plan.tagline && (
+                    <div className="font-mono text-xs text-neon/60 tracking-widest uppercase mb-2">{plan.tagline}</div>
+                  )}
+                  <h3 className={`font-display font-black text-2xl tracking-wide uppercase ${plan.popular ? 'text-neon' : 'text-white'}`}>
                     {plan.name}
                   </h3>
                 </div>
 
                 {/* Price */}
-                <div className="flex items-end gap-1.5 border-b border-white/5 pb-5">
-                  <span className={`font-display font-black text-4xl ${plan.popular ? 'glow-text text-neon' : 'text-white'}`}>
+                <div className="flex flex-col gap-1 border-b border-neon/10 pb-6">
+                  <span className={`font-display font-black text-[3.5rem] leading-none pt-2 pb-1 drop-shadow-[0_0_15px_currentColor] ${plan.priceColor || 'text-white'}`}>
                     {plan.price}
                   </span>
                   {plan.period && (
-                    <span className="text-silver/40 text-sm font-mono pb-1">{plan.period}</span>
+                    <span className="text-silver/50 text-sm font-mono mt-2">{plan.period}</span>
                   )}
                 </div>
 
                 {/* Features */}
-                <ul className="space-y-2.5 flex-1">
+                <ul className="space-y-4 flex-1 pt-4">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5">
-                      <CheckIcon />
-                      <span className="text-silver/70 text-sm">{f}</span>
-                    </li>
-                  ))}
-                  {plan.missing.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5">
-                      <XIcon />
-                      <span className="text-silver/30 text-sm line-through">{f}</span>
+                    <li key={f} className="flex items-start gap-3">
+                      <ArrowIcon />
+                      <span className="text-silver/80 text-[15px] leading-relaxed font-body">{f}</span>
                     </li>
                   ))}
                 </ul>
@@ -177,6 +163,7 @@ export default function PricingSection({ onGetStarted }) {
                 >
                   {plan.cta}
                 </motion.button>
+              </div>
               </div>
             </motion.div>
           ))}

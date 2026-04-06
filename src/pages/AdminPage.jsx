@@ -219,6 +219,23 @@ export default function AdminPage() {
     }
   }
 
+  const handleDeleteKnowledgeDoc = async (docId) => {
+    if (!window.confirm('Are you sure you want to delete this document?')) return
+    if (!selectedTenantId) return
+    try {
+      // Assuming DELETE /api/v1/knowledge/documents/{docId} or /api/v1/knowledge/{docId}
+      // Often, the endpoint matches the collection endpoint:
+      await request(`/api/v1/knowledge/documents/${docId}`, {
+        method: 'DELETE',
+        headers: { 'X-Tenant-ID': selectedTenantId }
+      })
+      loadKnowledgeDocs(selectedTenantId, false)
+    } catch (error) {
+      console.error('Failed to delete document:', error)
+      alert(`Failed to delete document: ${error.message}`)
+    }
+  }
+
   useEffect(() => {
     loadConfigs()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -807,18 +824,19 @@ export default function AdminPage() {
                     <th className="px-4 py-3 border-b border-white/5">Type</th>
                     <th className="px-4 py-3 border-b border-white/5">Status</th>
                     <th className="px-4 py-3 border-b border-white/5">Upload Time</th>
+                    <th className="px-4 py-3 border-b border-white/5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {loadingDocs ? (
                     [...Array(5)].map((_, i) => (
                       <tr key={i} className="animate-pulse">
-                        <td colSpan={4} className="px-4 py-4"><div className="h-2 bg-white/5 rounded w-full" /></td>
+                        <td colSpan={5} className="px-4 py-4"><div className="h-2 bg-white/5 rounded w-full" /></td>
                       </tr>
                     ))
                   ) : knowledgeDocs.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-4 py-20 text-center text-silver/20 italic tracking-widest">NO DOCUMENTS FOUND</td>
+                      <td colSpan={5} className="px-4 py-20 text-center text-silver/20 italic tracking-widest">NO DOCUMENTS FOUND</td>
                     </tr>
                   ) : (
                     knowledgeDocs.map((doc) => (
@@ -835,6 +853,17 @@ export default function AdminPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-silver/40">{formatDateTime(doc.created_at)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => handleDeleteKnowledgeDoc(doc.doc_id)}
+                            className="text-silver/40 hover:text-red-400 p-1.5 rounded hover:bg-white/5 transition-all"
+                            title="Delete Document"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
