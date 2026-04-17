@@ -57,6 +57,11 @@ export default function AdminPage() {
   const [knowledgeDocs, setKnowledgeDocs] = useState([])
   const [loadingDocs, setLoadingDocs] = useState(false)
   const [docsPage, setDocsPage] = useState(1)
+  const [previewDoc, setPreviewDoc] = useState(null)
+  const [previewContent, setPreviewContent] = useState('')
+  const [previewPdfUrl, setPreviewPdfUrl] = useState(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState('')
 
   // Section 3: Cloud config management states
   const [configTab, setConfigTab] = useState('list') // 'list' | 'create'
@@ -81,6 +86,11 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('alerts') // 'alerts' | 'audit'
   const [alertsPage, setAlertsPage] = useState(1)
   const [auditLogsPage, setAuditLogsPage] = useState(1)
+  const [expandedLogId, setExpandedLogId] = useState(null)
+  const [logSourceDetails, setLogSourceDetails] = useState({})
+  const [loadingLogId, setLoadingLogId] = useState(null)
+  const [logModal, setLogModal] = useState(null) // { logId, rca_summary }
+  const [logSearchQuery, setLogSearchQuery] = useState('')
 
   // Section 5: Sidebar Navigation
   const [activeView, setActiveView] = useState('monitoring') // 'monitoring' | 'knowledge' | 'config' | 'management'
@@ -204,6 +214,22 @@ export default function AdminPage() {
     }
   }
 
+  const loadSourceLogs = async (logId) => {
+    if (!selectedTenantId || logSourceDetails[logId]) return
+    setLoadingLogId(logId)
+    try {
+      const details = await request(`/api/v1/auditlogs/${logId}`, {
+        headers: { 'X-Tenant-ID': selectedTenantId }
+      })
+      setLogSourceDetails(prev => ({ ...prev, [logId]: details.source_logs || null }))
+    } catch (error) {
+      console.error('Failed to load source logs:', error)
+      setLogSourceDetails(prev => ({ ...prev, [logId]: null }))
+    } finally {
+      setLoadingLogId(null)
+    }
+  }
+
   const loadKnowledgeDocs = async (tenantId, showLoading = true) => {
     if (!tenantId) return
     if (showLoading) setLoadingDocs(true)
@@ -234,6 +260,38 @@ export default function AdminPage() {
       console.error('Failed to delete document:', error)
       alert(`Failed to delete document: ${error.message}`)
     }
+  }
+
+  const handlePreviewDoc = async (doc) => {
+    setPreviewDoc(doc)
+    setPreviewContent('')
+    setPreviewError('')
+    setPreviewPdfUrl(null)
+    setPreviewLoading(true)
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/v1/knowledge/documents/${doc.doc_id}/content`, {
+        headers: { 'X-Tenant-ID': selectedTenantId }
+      })
+      if (!resp.ok) throw new Error(`Lỗi server: ${resp.status}`)
+      if (doc.file_type === 'pdf') {
+        const blob = await resp.blob()
+        setPreviewPdfUrl(URL.createObjectURL(blob))
+      } else {
+        setPreviewContent(await resp.text())
+      }
+    } catch (err) {
+      setPreviewError(err.message)
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
+  const closePreview = () => {
+    if (previewPdfUrl) URL.revokeObjectURL(previewPdfUrl)
+    setPreviewDoc(null)
+    setPreviewContent('')
+    setPreviewError('')
+    setPreviewPdfUrl(null)
   }
 
   useEffect(() => {
@@ -625,28 +683,42 @@ export default function AdminPage() {
                         <th className="px-4 py-3 border-b border-white/5">Actor</th>
                         <th className="px-4 py-3 border-b border-white/5">Time</th>
                         <th className="px-4 py-3 border-b border-white/5">Outcome</th>
+                        <th className="px-4 py-3 border-b border-white/5">Source Logs</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {loadingData ? (
                         [...Array(5)].map((_, i) => (
                           <tr key={i} className="animate-pulse">
-                            <td colSpan={5} className="px-4 py-4"><div className="h-2 bg-white/5 rounded w-full" /></td>
+                            <td colSpan={6} className="px-4 py-4"><div className="h-2 bg-white/5 rounded w-full" /></td>
                           </tr>
                         ))
                       ) : auditLogs.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="px-4 py-20 text-center text-silver/20 italic tracking-widest">AUDIT STREAM EMPTY</td>
+                          <td colSpan={6} className="px-4 py-20 text-center text-silver/20 italic tracking-widest">AUDIT STREAM EMPTY</td>
                         </tr>
                       ) : (
                         auditLogs.map((log) => (
-                          <tr key={log.log_id} className="hover:bg-white/[0.02] transition-colors group">
+                          <tr key={log.log_id} className="hover:bg-white/[0.02] transition-colors group align-top">
                             <td className="px-4 py-3 text-silver/80 group-hover:text-white transition-colors">{log.rca_summary}</td>
                             <td className="px-4 py-3 text-neon/70 uppercase">[{log.action_type}] {log.action_name}</td>
                             <td className="px-4 py-3 text-silver/40">{log.approver_user_id}</td>
                             <td className="px-4 py-3 text-silver/40">{formatDateTime(log.created_at)}</td>
                             <td className="px-4 py-3">
                               <span className={log.outcome === 'Resolved' ? 'text-green-400' : 'text-yellow-400'}>{log.outcome}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                onClick={() => {
+                                  setLogModal({ logId: log.log_id, rca_summary: log.rca_summary })
+                                  setLogSearchQuery('')
+                                  loadSourceLogs(log.log_id)
+                                }}
+                                className="text-[10px] px-2 py-1 border border-neon/30 rounded text-neon/70 hover:text-neon hover:bg-neon/10 transition-all whitespace-nowrap flex items-center gap-1"
+                              >
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                View Logs
+                              </button>
                             </td>
                           </tr>
                         ))
@@ -855,6 +927,16 @@ export default function AdminPage() {
                         <td className="px-4 py-3 text-silver/40">{formatDateTime(doc.created_at)}</td>
                         <td className="px-4 py-3 text-right">
                           <button
+                            onClick={() => handlePreviewDoc(doc)}
+                            className="text-silver/40 hover:text-neon p-1.5 rounded hover:bg-white/5 transition-all mr-1"
+                            title="Preview Document"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </button>
+                          <button
                             onClick={() => handleDeleteKnowledgeDoc(doc.doc_id)}
                             className="text-silver/40 hover:text-red-400 p-1.5 rounded hover:bg-white/5 transition-all"
                             title="Delete Document"
@@ -872,7 +954,7 @@ export default function AdminPage() {
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between px-4 py-3 bg-white/5 border-t border-white/5 mt-auto shrink-0 mt-4 rounded-b-lg">
+            <div className="flex items-center justify-between px-4 py-3 bg-white/5 border-t border-white/5 mt-4 shrink-0 rounded-b-lg">
               <button
                 disabled={docsPage === 1}
                 onClick={() => setDocsPage(p => Math.max(1, p - 1))}
@@ -1331,6 +1413,163 @@ export default function AdminPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Knowledge Document Preview Modal */}
+      {previewDoc && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={closePreview}
+        >
+          <div
+            className="bg-[#0d1525] border border-white/10 rounded-lg w-full max-w-4xl max-h-[85vh] flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-white font-medium truncate">{previewDoc.filename}</span>
+                <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-silver/60 uppercase shrink-0">
+                  {previewDoc.file_type}
+                </span>
+              </div>
+              <button
+                onClick={closePreview}
+                className="text-silver/40 hover:text-white p-1.5 rounded hover:bg-white/5 transition-all shrink-0 ml-4"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-auto">
+              {previewLoading && (
+                <div className="flex items-center justify-center h-48">
+                  <div className="w-6 h-6 border-2 border-neon border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              {previewError && !previewLoading && (
+                <div className="p-6 text-red-400 text-sm">{previewError}</div>
+              )}
+              {!previewLoading && !previewError && previewDoc.file_type === 'pdf' && previewPdfUrl && (
+                <iframe
+                  src={previewPdfUrl}
+                  className="w-full border-0"
+                  style={{ minHeight: '600px' }}
+                  title={previewDoc.filename}
+                />
+              )}
+              {!previewLoading && !previewError && previewDoc.file_type !== 'pdf' && (
+                <pre className="whitespace-pre-wrap font-mono text-xs text-silver/80 p-5 leading-relaxed">
+                  {previewContent}
+                </pre>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Source Logs Modal */}
+      {logModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setLogModal(null)}>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div
+            className="relative w-full max-w-4xl bg-[#0d1525] border border-white/10 rounded-xl shadow-2xl flex flex-col"
+            style={{ maxHeight: '85vh' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+              <div>
+                <div className="text-xs font-mono text-neon uppercase tracking-widest mb-1">CloudWatch Source Logs</div>
+                <div className="text-[10px] text-silver/40 font-mono truncate max-w-lg">
+                  {logSourceDetails[logModal.logId]?.cloudwatch?.resource_id
+                    ? `${logSourceDetails[logModal.logId].cloudwatch.resource_id} — ${logSourceDetails[logModal.logId].cloudwatch.event_count} events — last ${logSourceDetails[logModal.logId].cloudwatch.lookback_seconds}s`
+                    : logModal.rca_summary?.slice(0, 80)}
+                </div>
+              </div>
+              <button onClick={() => setLogModal(null)} className="text-silver/40 hover:text-white transition-colors ml-4 shrink-0">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            {/* Search bar */}
+            <div className="px-5 py-3 border-b border-white/5 shrink-0">
+              <div className="relative">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-silver/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                <input
+                  type="text"
+                  value={logSearchQuery}
+                  onChange={e => setLogSearchQuery(e.target.value)}
+                  placeholder="Search log lines..."
+                  className="w-full bg-white/5 border border-white/10 rounded-lg pl-8 pr-4 py-2 text-[11px] font-mono text-silver/80 placeholder-silver/20 focus:outline-none focus:border-neon/40 focus:bg-white/[0.07] transition-all"
+                  autoFocus
+                />
+                {logSearchQuery && (
+                  <button onClick={() => setLogSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-silver/30 hover:text-white">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                )}
+              </div>
+              {logSearchQuery && logSourceDetails[logModal.logId]?.cloudwatch?.log_lines && (
+                <div className="text-[9px] text-silver/30 mt-1 font-mono">
+                  {logSourceDetails[logModal.logId].cloudwatch.log_lines.filter(l => l.toLowerCase().includes(logSearchQuery.toLowerCase())).length} matches
+                </div>
+              )}
+            </div>
+
+            {/* Log content */}
+            <div className="overflow-y-auto custom-scrollbar flex-1 p-4">
+              {loadingLogId === logModal.logId ? (
+                <div className="flex items-center justify-center py-16 text-silver/30 text-xs font-mono">
+                  <svg className="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  Loading logs…
+                </div>
+              ) : logSourceDetails[logModal.logId]?.cloudwatch?.log_lines?.length > 0 ? (() => {
+                const lines = logSourceDetails[logModal.logId].cloudwatch.log_lines
+                const q = logSearchQuery.toLowerCase()
+                const filtered = q ? lines.filter(l => l.toLowerCase().includes(q)) : lines
+                if (filtered.length === 0) return (
+                  <div className="text-center text-silver/20 italic text-xs py-16 font-mono">No lines match "{logSearchQuery}"</div>
+                )
+                return (
+                  <table className="w-full border-separate border-spacing-0">
+                    <tbody>
+                      {filtered.map((line, idx) => {
+                        const isError = /error|exception|fatal|critical/i.test(line)
+                        const isWarn = /warn/i.test(line)
+                        const parts = q ? line.split(new RegExp(`(${logSearchQuery})`, 'gi')) : [line]
+                        return (
+                          <tr key={idx} className={`group ${isError ? 'bg-red-900/10' : isWarn ? 'bg-yellow-900/10' : 'hover:bg-white/[0.02]'}`}>
+                            <td className="pr-4 py-0.5 text-right text-[9px] font-mono text-silver/20 select-none w-10 shrink-0">{idx + 1}</td>
+                            <td className={`py-0.5 font-mono text-[10px] leading-relaxed break-all ${isError ? 'text-red-400/80' : isWarn ? 'text-yellow-400/80' : 'text-silver/60'}`}>
+                              {q ? parts.map((p, i) =>
+                                p.toLowerCase() === q
+                                  ? <mark key={i} className="bg-neon/30 text-neon rounded px-0.5">{p}</mark>
+                                  : p
+                              ) : line}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                )
+              })() : (
+                <div className="text-center text-silver/20 italic text-xs py-16 font-mono">No source logs available for this entry</div>
+              )}
+            </div>
+
+            {/* Footer */}
+            {logSourceDetails[logModal.logId]?.cloudwatch?.fetched_at && (
+              <div className="px-5 py-2.5 border-t border-white/5 shrink-0 text-[9px] font-mono text-silver/20">
+                Fetched at {logSourceDetails[logModal.logId].cloudwatch.fetched_at}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
