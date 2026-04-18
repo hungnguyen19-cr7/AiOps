@@ -15,6 +15,7 @@ const INITIAL_CONFIG_FORM = {
   aws_secret_access_key: '',
   slack_channel: '',
   slack_bot_token: '',
+  slack_app_token: '',
 }
 
 async function request(path, options = {}) {
@@ -360,6 +361,7 @@ export default function AdminPage() {
       aws_secret_access_key: '',
       slack_channel: config.slack_channel || '',
       slack_bot_token: '',
+      slack_app_token: '',
     })
     setEditingTenantId(String(config.tenant_id))
     setConfigTab('create')
@@ -382,6 +384,7 @@ export default function AdminPage() {
       aws_secret_access_key: configForm.aws_secret_access_key.trim() || null,
       slack_channel: configForm.slack_channel.trim() || null,
       slack_bot_token: configForm.slack_bot_token.trim() || null,
+      slack_app_token: configForm.slack_app_token.trim() || null,
     }
 
     try {
@@ -1031,7 +1034,7 @@ export default function AdminPage() {
                           <th className="text-left px-4 py-3 font-medium">Name</th>
                           <th className="text-left px-4 py-3 font-medium">Credential Ref</th>
                           <th className="text-left px-4 py-3 font-medium">Slack Channel</th>
-                          <th className="text-left px-4 py-3 font-medium">Slack Bot Token</th>
+                          <th className="text-left px-4 py-3 font-medium">Slack Tokens</th>
                           <th className="text-left px-4 py-3 font-medium">Created</th>
                           <th className="text-left px-4 py-3 font-medium">Actions</th>
                         </tr>
@@ -1070,7 +1073,18 @@ export default function AdminPage() {
                             </td>
                             <td className="px-4 py-3 text-silver/80">{config.credential_ref ? '***' : '-'}</td>
                             <td className="px-4 py-3 text-silver/80">{config.slack_channel || '-'}</td>
-                            <td className="px-4 py-3 text-silver/80">{config.slack_bot_token ? '***' : '-'}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-col gap-1">
+                                <span className={`text-[10px] font-mono flex items-center gap-1 ${config.slack_bot_token ? 'text-green-400' : 'text-silver/30'}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full inline-block ${config.slack_bot_token ? 'bg-green-400' : 'bg-white/20'}`} />
+                                  Bot {config.slack_bot_token ? 'xoxb-…' : 'not set'}
+                                </span>
+                                <span className={`text-[10px] font-mono flex items-center gap-1 ${config.slack_app_token ? 'text-neon' : 'text-silver/30'}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full inline-block ${config.slack_app_token ? 'bg-neon' : 'bg-white/20'}`} />
+                                  App {config.slack_app_token ? 'xapp-…' : 'not set'}
+                                </span>
+                              </div>
+                            </td>
                             <td className="px-4 py-3 text-silver/80">{formatDate(config.created_at)}</td>
                             <td className="px-4 py-3 flex items-center gap-4">
                               <button
@@ -1203,26 +1217,47 @@ export default function AdminPage() {
                           )}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="font-mono text-[10px] text-silver/40 uppercase tracking-[0.2em] block">slack_channel</label>
-                            <input
-                              type="text"
-                              value={configForm.slack_channel}
-                              onChange={(e) => setConfigForm((prev) => ({ ...prev, slack_channel: e.target.value }))}
-                              placeholder="#aiops-alerts"
-                              className="w-full bg-navy border border-white/10 rounded px-4 py-3 text-sm text-white focus:outline-none focus:border-neon/40"
-                            />
+                        <div className="space-y-3 border border-white/10 rounded-lg p-4">
+                          <label className="font-mono text-[10px] text-silver/40 uppercase tracking-[0.2em] block">Slack Integration</label>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="font-mono text-[10px] text-silver/60 uppercase tracking-[0.15em] block">slack_channel</label>
+                              <input
+                                type="text"
+                                value={configForm.slack_channel}
+                                onChange={(e) => setConfigForm((prev) => ({ ...prev, slack_channel: e.target.value }))}
+                                placeholder="#aiops-alerts"
+                                className="w-full bg-navy border border-white/10 rounded px-4 py-3 text-sm text-white focus:outline-none focus:border-neon/40"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className="font-mono text-[10px] text-silver/60 uppercase tracking-[0.15em] block">
+                                slack_bot_token
+                                <span className="ml-2 text-silver/30 normal-case tracking-normal">Bot User OAuth Token (xoxb-…)</span>
+                              </label>
+                              <input
+                                type="password"
+                                value={configForm.slack_bot_token}
+                                onChange={(e) => setConfigForm((prev) => ({ ...prev, slack_bot_token: e.target.value }))}
+                                placeholder={editingTenantId ? '(unchanged)' : 'xoxb-...'}
+                                className="w-full bg-navy border border-white/10 rounded px-4 py-3 text-sm text-white focus:outline-none focus:border-neon/40 font-mono"
+                              />
+                            </div>
                           </div>
 
                           <div className="space-y-2">
-                            <label className="font-mono text-[10px] text-silver/40 uppercase tracking-[0.2em] block">slack_bot_token</label>
+                            <label className="font-mono text-[10px] text-silver/60 uppercase tracking-[0.15em] block">
+                              slack_app_token
+                              <span className="ml-2 text-silver/30 normal-case tracking-normal">App-Level Token for Socket Mode (xapp-…)</span>
+                            </label>
                             <input
-                              type="text"
-                              value={configForm.slack_bot_token}
-                              onChange={(e) => setConfigForm((prev) => ({ ...prev, slack_bot_token: e.target.value }))}
-                              placeholder="xoxb-..."
-                              className="w-full bg-navy border border-white/10 rounded px-4 py-3 text-sm text-white focus:outline-none focus:border-neon/40"
+                              type="password"
+                              value={configForm.slack_app_token}
+                              onChange={(e) => setConfigForm((prev) => ({ ...prev, slack_app_token: e.target.value }))}
+                              placeholder={editingTenantId ? '(unchanged)' : 'xapp-...'}
+                              className="w-full bg-navy border border-white/10 rounded px-4 py-3 text-sm text-white focus:outline-none focus:border-neon/40 font-mono"
                             />
                           </div>
                         </div>
