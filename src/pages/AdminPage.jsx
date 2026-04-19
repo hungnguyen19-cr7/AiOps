@@ -128,11 +128,18 @@ export default function AdminPage() {
       )},
     ]
     if (isAdmin) {
-      base.push({ id: 'management', label: 'Management Client', icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-      )})
+      base.push(
+        { id: 'incidents', label: 'Incident Control', route: '/admin/incidents', icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" />
+          </svg>
+        )},
+        { id: 'management', label: 'Management Client', icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+        )}
+      )
     }
     return base
   }, [isAdmin])
@@ -543,14 +550,14 @@ export default function AdminPage() {
             {sidebarItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveView(item.id)}
+                onClick={() => item.route ? navigate(item.route) : setActiveView(item.id)}
                 className={`w-full flex items-center gap-4 rounded px-4 py-3.5 transition-all duration-300 group relative ${
-                  activeView === item.id 
+                  activeView === item.id && !item.route
                     ? 'bg-neon/10 border border-neon/30 text-neon shadow-[0_0_20px_rgba(0,255,170,0.1)]' 
                     : 'text-silver/40 hover:bg-white/5 hover:text-white border border-transparent'
                 }`}
               >
-                <div className={`transition-colors duration-300 ${activeView === item.id ? 'text-neon' : 'text-silver/30 group-hover:text-silver'}`}>
+                <div className={`transition-colors duration-300 ${activeView === item.id && !item.route ? 'text-neon' : 'text-silver/30 group-hover:text-silver'}`}>
                   {item.icon}
                 </div>
                 
@@ -558,7 +565,7 @@ export default function AdminPage() {
                   {item.label}
                 </span>
 
-                {activeView === item.id && (
+                {activeView === item.id && !item.route && (
                   <div className="ml-auto w-1.5 h-4 bg-neon rounded-full shadow-[0_0_8px_rgba(0,255,170,0.6)]" />
                 )}
               </button>
