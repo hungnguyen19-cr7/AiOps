@@ -113,7 +113,6 @@ export default function AdminIncidentsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': INCIDENTS_API_KEY,
         },
         body: JSON.stringify(body),
       })
