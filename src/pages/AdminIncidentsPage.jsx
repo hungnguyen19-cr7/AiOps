@@ -16,10 +16,10 @@ const INCIDENT_CONFIGS = [
     startPath: '/api/demo/cpu-memory-leak',
     stopPath: '/api/demo/cpu-memory-leak/stop',
     startPayload: {
-      durationSeconds: 90,
+      durationSeconds: 60,
       cpuWorkers: 2,
-      memoryMbPerStep: 64,
-      memoryStepMs: 250,
+      memoryMbPerStep: 8,
+      memoryStepMs: 1000,
     },
   },
   {
@@ -210,6 +210,9 @@ export default function AdminIncidentsPage() {
             {INCIDENT_CONFIGS.map((incident) => {
               const state = incidentStates[incident.id]
               const isBusy = state.isStarting || state.isStopping
+              const isActive = Boolean(state.incidentId) && state.lastAction === 'start' && state.state === 'success'
+              const canStart = isReady && !isBusy && !isActive
+              const canStop = isReady && !isBusy && isActive
               const statusTone = state.state === 'success'
                 ? 'text-green-400 border-green-400/20 bg-green-400/10'
                 : state.state === 'error'
@@ -240,14 +243,14 @@ export default function AdminIncidentsPage() {
                   <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
                       onClick={() => handleStart(incident)}
-                      disabled={!isReady || isBusy}
+                      disabled={!canStart}
                       className="btn-neon rounded-sm px-4 py-3 bg-neon/10 border border-neon/40 text-neon font-display font-semibold text-sm tracking-widest uppercase disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       {state.isStarting ? 'STARTING...' : 'START'}
                     </button>
                     <button
                       onClick={() => handleStop(incident)}
-                      disabled={!isReady || isBusy}
+                      disabled={!canStop}
                       className="btn-neon rounded-sm px-4 py-3 bg-red-500/10 border border-red-400/40 text-red-300 font-display font-semibold text-sm tracking-widest uppercase disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       {state.isStopping ? 'STOPPING...' : 'STOP'}
