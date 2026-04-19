@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 
-const GARAGE_BASE_URL = (import.meta.env.VITE_GSO_BASE_URL || '').replace(/\/$/, '')
-const INCIDENTS_ENABLED = import.meta.env.VITE_ENABLE_INCIDENT_CONTROLS === 'true'
-const INCIDENTS_RELAY_ENABLED = import.meta.env.VITE_GSO_USE_SERVER_RELAY === 'true'
+const GARAGE_BASE_URL = 'https://garage-sale.ntq.app'
+const INCIDENTS_ENABLED = true
+const INCIDENTS_API_KEY = 'JnjRzsJUIqlzWADuGaIiyTceurXaEdWv'
 
 const INCIDENT_CONFIGS = [
   {
@@ -84,7 +84,7 @@ export default function AdminIncidentsPage() {
   const [incidentStates, setIncidentStates] = useState(initialStatus)
 
   const isReady = useMemo(() => {
-    return INCIDENTS_ENABLED && INCIDENTS_RELAY_ENABLED && Boolean(GARAGE_BASE_URL)
+    return INCIDENTS_ENABLED && Boolean(GARAGE_BASE_URL) && Boolean(INCIDENTS_API_KEY)
   }, [])
 
   const updateIncidentState = (incidentId, updater) => {
@@ -106,13 +106,14 @@ export default function AdminIncidentsPage() {
 
     try {
       if (!isReady) {
-        throw new Error('Incident controls are disabled until a server relay is configured. Set VITE_ENABLE_INCIDENT_CONTROLS=true, VITE_GSO_BASE_URL, and VITE_GSO_USE_SERVER_RELAY=true after the backend relay is ready.')
+        throw new Error('Incident controls are disabled or missing hardcoded garage-sale-online connection settings.')
       }
 
       const response = await fetch(`${GARAGE_BASE_URL}${path}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-api-key': INCIDENTS_API_KEY,
         },
         body: JSON.stringify(body),
       })
@@ -201,7 +202,7 @@ export default function AdminIncidentsPage() {
             <div className="neon-border rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-5 py-4">
               <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-yellow-300">Controls disabled</p>
               <p className="mt-2 text-sm text-silver/80 leading-relaxed">
-                Set `VITE_ENABLE_INCIDENT_CONTROLS=true`, `VITE_GSO_BASE_URL`, and `VITE_GSO_USE_SERVER_RELAY=true` only after a backend relay is ready to hold the incident control secret server-side.
+                Incident controls are currently unavailable because the built-in garage-sale-online connection settings are incomplete.
               </p>
             </div>
           )}
