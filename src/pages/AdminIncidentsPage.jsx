@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 
-const GARAGE_BASE_URL = 'https://garage-sale.ntq.app'
+const INCIDENTS_PROXY_BASE_URL = '/api/incident-controls'
 const INCIDENTS_ENABLED = true
 const INCIDENTS_API_KEY = 'JnjRzsJUIqlzWADuGaIiyTceurXaEdWv'
 
@@ -84,7 +84,7 @@ export default function AdminIncidentsPage() {
   const [incidentStates, setIncidentStates] = useState(initialStatus)
 
   const isReady = useMemo(() => {
-    return INCIDENTS_ENABLED && Boolean(GARAGE_BASE_URL) && Boolean(INCIDENTS_API_KEY)
+    return INCIDENTS_ENABLED && Boolean(INCIDENTS_PROXY_BASE_URL) && Boolean(INCIDENTS_API_KEY)
   }, [])
 
   const updateIncidentState = (incidentId, updater) => {
@@ -106,10 +106,10 @@ export default function AdminIncidentsPage() {
 
     try {
       if (!isReady) {
-        throw new Error('Incident controls are disabled or missing hardcoded garage-sale-online connection settings.')
+        throw new Error('Incident controls are disabled or missing built-in proxy connection settings.')
       }
 
-      const response = await fetch(`${GARAGE_BASE_URL}${path}`, {
+      const response = await fetch(`${INCIDENTS_PROXY_BASE_URL}${path}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -202,7 +202,7 @@ export default function AdminIncidentsPage() {
             <div className="neon-border rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-5 py-4">
               <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-yellow-300">Controls disabled</p>
               <p className="mt-2 text-sm text-silver/80 leading-relaxed">
-                Incident controls are currently unavailable because the built-in garage-sale-online connection settings are incomplete.
+                Incident controls are currently unavailable because the built-in incident proxy settings are incomplete.
               </p>
             </div>
           )}
