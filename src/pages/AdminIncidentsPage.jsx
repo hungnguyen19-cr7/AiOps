@@ -16,9 +16,9 @@ const INCIDENT_CONFIGS = [
     startPath: '/api/demo/cpu-memory-leak',
     stopPath: '/api/demo/cpu-memory-leak/stop',
     startPayload: {
-      durationSeconds: 60,
+      durationSeconds: 45,
       cpuWorkers: 2,
-      memoryMbPerStep: 8,
+      memoryMbPerStep: 16,
       memoryStepMs: 1000,
     },
   },
