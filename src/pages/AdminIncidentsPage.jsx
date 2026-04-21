@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
@@ -6,7 +6,8 @@ import Footer from '../components/Footer'
 
 const INCIDENTS_PROXY_BASE_URL = '/api/incident-controls'
 const INCIDENTS_ENABLED = true
-const INCIDENTS_API_KEY = 'JnjRzsJUIqlzWADuGaIiyTceurXaEdWv'
+const INCIDENTS_STATUS_PATH = '/api/demo/status'
+const INCIDENTS_STATUS_POLL_INTERVAL_MS = 30000
 
 const INCIDENT_CONFIGS = [
   {
@@ -62,8 +63,6 @@ const INCIDENT_CONFIGS = [
   },
 ]
 
-const INCIDENT_STATUS_STORAGE_KEY = 'aiops_incident_states'
-
 const initialStatus = INCIDENT_CONFIGS.reduce((acc, incident) => {
   acc[incident.id] = {
     isStarting: false,
@@ -76,33 +75,6 @@ const initialStatus = INCIDENT_CONFIGS.reduce((acc, incident) => {
   return acc
 }, {})
 
-function getStoredIncidentStates() {
-  if (typeof window === 'undefined') {
-    return initialStatus
-  }
-
-  try {
-    const raw = window.localStorage.getItem(INCIDENT_STATUS_STORAGE_KEY)
-    if (!raw) {
-      return initialStatus
-    }
-
-    const parsed = JSON.parse(raw)
-    return INCIDENT_CONFIGS.reduce((acc, incident) => {
-      const stored = parsed?.[incident.id]
-      acc[incident.id] = {
-        ...initialStatus[incident.id],
-        ...(stored && typeof stored === 'object' ? stored : {}),
-        isStarting: false,
-        isStopping: false,
-      }
-      return acc
-    }, {})
-  } catch {
-    return initialStatus
-  }
-}
-
 function getShortMessage(payload, fallback) {
   if (!payload || typeof payload !== 'object') return fallback
   return payload.reason || payload.error || payload.status || fallback
@@ -110,7 +82,8 @@ function getShortMessage(payload, fallback) {
 
 export default function AdminIncidentsPage() {
   const navigate = useNavigate()
-  const [incidentStates, setIncidentStates] = useState(getStoredIncidentStates)
+  const [incidentStates, setIncidentStates] = useState(initialStatus)
+  const latestStatusRequestRef = useRef(0)
   const isReady = useMemo(() => {
     return INCIDENTS_ENABLED && Boolean(INCIDENTS_PROXY_BASE_URL)
   }, [])
@@ -204,20 +177,79 @@ export default function AdminIncidentsPage() {
     }))
   }
 
-  useEffect(() => {
-    window.localStorage.setItem(INCIDENT_STATUS_STORAGE_KEY, JSON.stringify(incidentStates))
-  }, [incidentStates])
-
-  useEffect(() => {
-    const handleStorage = (event) => {
-      if (event.key === INCIDENT_STATUS_STORAGE_KEY) {
-        setIncidentStates(getStoredIncidentStates())
-      }
+  const refreshStatuses = async () => {
+    if (!isReady) {
+      return
     }
 
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
-  }, [])
+    const requestId = latestStatusRequestRef.current + 1
+    latestStatusRequestRef.current = requestId
+
+    try {
+      const response = await fetch(`${INCIDENTS_PROXY_BASE_URL}${INCIDENTS_STATUS_PATH}`, {
+        cache: 'no-store',
+      })
+      const data = await response.json().catch(() => null)
+      if (requestId !== latestStatusRequestRef.current) {
+        return
+      }
+      if (!response.ok) {
+        throw new Error(getShortMessage(data, `Request failed with status ${response.status}`))
+      }
+
+      setIncidentStates((prev) => INCIDENT_CONFIGS.reduce((acc, incident) => {
+        const runtimeState = data?.incidents?.[incident.id]
+        const wasBusy = prev[incident.id]?.isStarting || prev[incident.id]?.isStopping
+        acc[incident.id] = {
+          ...initialStatus[incident.id],
+          ...prev[incident.id],
+          isStarting: false,
+          isStopping: false,
+          state: runtimeState?.active ? 'success' : 'idle',
+          incidentId: runtimeState?.incidentId || '',
+          message: runtimeState?.active
+            ? `Incident active via ${runtimeState.source || 'runtime-state'}.`
+            : wasBusy
+              ? prev[incident.id]?.message || 'No action yet.'
+              : 'No active incident.',
+          lastAction: runtimeState?.active ? 'start' : '',
+        }
+        return acc
+      }, {}))
+    } catch (error) {
+      if (requestId !== latestStatusRequestRef.current) {
+        return
+      }
+      setIncidentStates((prev) => INCIDENT_CONFIGS.reduce((acc, incident) => {
+        acc[incident.id] = {
+          ...prev[incident.id],
+          isStarting: false,
+          isStopping: false,
+          state: prev[incident.id]?.incidentId ? prev[incident.id].state : 'error',
+          message: prev[incident.id]?.incidentId
+            ? prev[incident.id].message
+            : error instanceof Error
+              ? error.message
+              : 'Unknown error',
+        }
+        return acc
+      }, {}))
+    }
+  }
+
+  useEffect(() => {
+    refreshStatuses()
+    const intervalId = window.setInterval(refreshStatuses, INCIDENTS_STATUS_POLL_INTERVAL_MS)
+    const handleFocus = () => {
+      refreshStatuses()
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [isReady])
 
   const callIncidentApi = async ({ incidentId, path, body, action }) => {
     updateIncidentState(incidentId, (prev) => ({
@@ -249,10 +281,12 @@ export default function AdminIncidentsPage() {
 
       if (action === 'start') {
         markIncidentActive(incidentId, data, action)
+        await refreshStatuses()
         return
       }
 
       markIncidentStopped(incidentId, data)
+      await refreshStatuses()
     } catch (error) {
       if (action === 'stop') {
         resetIncidentState(incidentId)
@@ -266,6 +300,7 @@ export default function AdminIncidentsPage() {
         message: error instanceof Error ? error.message : 'Unknown error',
         lastAction: action,
       }))
+      await refreshStatuses()
     }
   }
 
