@@ -7,7 +7,7 @@ import Footer from '../components/Footer'
 const INCIDENTS_PROXY_BASE_URL = '/api/incident-controls'
 const INCIDENTS_ENABLED = true
 const INCIDENTS_STATUS_PATH = '/api/demo/status'
-const INCIDENTS_STATUS_POLL_INTERVAL_MS = 30000
+const INCIDENTS_STATUS_POLL_INTERVAL_MS = 3000
 
 const INCIDENT_CONFIGS = [
   {
@@ -216,24 +216,10 @@ export default function AdminIncidentsPage() {
         }
         return acc
       }, {}))
-    } catch (error) {
+    } catch {
       if (requestId !== latestStatusRequestRef.current) {
         return
       }
-      setIncidentStates((prev) => INCIDENT_CONFIGS.reduce((acc, incident) => {
-        acc[incident.id] = {
-          ...prev[incident.id],
-          isStarting: false,
-          isStopping: false,
-          state: prev[incident.id]?.incidentId ? prev[incident.id].state : 'error',
-          message: prev[incident.id]?.incidentId
-            ? prev[incident.id].message
-            : error instanceof Error
-              ? error.message
-              : 'Unknown error',
-        }
-        return acc
-      }, {}))
     }
   }
 
